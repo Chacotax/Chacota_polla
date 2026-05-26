@@ -1,0 +1,22 @@
+{
+  "name": "chacota_polla_backend",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev --remote",
+    "deploy": "wrangler deploy",
+    "d1:create": "wrangler d1 create chacota_polla",
+    "d:schema": "wrangler d1 execute chacota_polla --remote --file=./migrations/0001_schema_v2.sql",
+    "d:seed": "wrangler d1 execute chacota_polla --remote --file=./migrations/0002_seed_base_v2.sql",
+    "d:seed:remote": "wrangler d1 execute chacota_polla --remote --file=./migrations/0002_seed_base_v2.sql",
+    "d:reset": "wrangler d1 execute chacota_polla --remote --file=./migrations/0000_reset_data.sql",
+    "d:list": "wrangler d1 execute chacota_polla --remote --command=\"SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;\"",
+    "d:schema:local": "wrangler d1 execute chacota_polla --local --file=./migrations/0001_schema_v2.sql",
+    "d:seed:local": "wrangler d1 execute chacota_polla --local --file=./migrations/0002_seed_base_v2.sql"
+  },
+  "devDependencies": {
+    "wrangler": "3.91.0"
+  }
+}

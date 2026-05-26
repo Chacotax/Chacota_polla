@@ -1,0 +1,17 @@
+name = "chacota-polla-backend"
+main = "src/index.js"
+compatibility_date = "2024-11-06"
+
+[vars]
+APP_NAME = "Chacota Polla Mundialista"
+CORS_ORIGIN = "*"
+API_PROVIDER = "apifootball"
+APIFOOTBALL_BASE_URL = "https://apiv3.apifootball.com/"
+APIFOOTBALL_TIMEZONE = "America/Lima"
+APIFOOTBALL_LEAGUE_ID = "28"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "chacota_polla"
+database_id = "a6c99f56-e339-4b1c-9251-3346505f4c86"
+
