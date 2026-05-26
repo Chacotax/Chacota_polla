@@ -80,7 +80,7 @@ export default function LoginPage() {
             <input name="password" type="password" value={form.password} onChange={update} placeholder="Admin123*" />
 
             <button className="btn primary">Ingresar</button>
-            <small>Usuario inicial: admin / Admin123*</small>
+
           </form>
         ) : (
           <form onSubmit={doRegister} className="form">
