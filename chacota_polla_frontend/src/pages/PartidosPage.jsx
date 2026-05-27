@@ -198,12 +198,6 @@ export default function PartidosPage() {
     );
   }, [partidos, form.id_partido]);
 
-  const prediccionSeleccionada = useMemo(() => {
-    if (!form.id_partido) return null;
-
-    return getPrediccionPartido(form.id_partido, form.id_grupo);
-  }, [form.id_partido, form.id_grupo, predicciones]);
-
   const jugadoresPartido = useMemo(() => {
     if (!partidoSeleccionado) return [];
 
@@ -263,8 +257,7 @@ export default function PartidosPage() {
     setForm((prev) => ({
       ...prev,
       id_partido: p.id_partido,
-      goles_local_predicho:
-          prediccionGuardada?.goles_local_predicho ?? 0,
+      goles_local_predicho: prediccionGuardada?.goles_local_predicho ?? 0,
       goles_visitante_predicho:
           prediccionGuardada?.goles_visitante_predicho ?? 0,
       goleadores: normalizarGoleadores(prediccionGuardada?.goleadores)
@@ -342,21 +335,19 @@ export default function PartidosPage() {
           ? await api.misPredicciones(user.id_usuario)
           : [];
 
-      setPredicciones(Array.isArray(nuevasPredicciones) ? nuevasPredicciones : []);
+      setPredicciones(
+          Array.isArray(nuevasPredicciones) ? nuevasPredicciones : []
+      );
     } catch (err) {
       setError(err.message || "No se pudo guardar la predicción.");
     }
   };
 
-  const renderSavedPredictionCard = (prediccion, partido, compact = false) => {
+  const renderSavedPredictionCard = (prediccion, partido) => {
     if (!prediccion || !partido) return null;
 
     return (
-        <div
-            className={`fixture-saved-prediction ${
-                compact ? "compact-saved-prediction" : ""
-            }`}
-        >
+        <div className="fixture-saved-prediction">
           <span>Tu predicción</span>
 
           <div className="fixture-saved-score">
@@ -391,13 +382,6 @@ export default function PartidosPage() {
           </div>
 
           <form className="form prediction-form" onSubmit={submit}>
-            {prediccionSeleccionada &&
-                renderSavedPredictionCard(
-                    prediccionSeleccionada,
-                    partidoSeleccionado,
-                    true
-                )}
-
             <div className="prediction-form-grid prediction-form-grid-single">
               <div>
                 <label>Grupo de polla</label>
