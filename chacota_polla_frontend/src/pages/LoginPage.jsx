@@ -74,10 +74,10 @@ export default function LoginPage() {
         {mode === "login" ? (
           <form onSubmit={doLogin} className="form">
             <label>Usuario</label>
-            <input name="usuario" value={form.usuario} onChange={update} placeholder="admin" />
+            <input name="usuario" value={form.usuario} onChange={update} placeholder="Usuario" />
 
             <label>Contraseña</label>
-            <input name="password" type="password" value={form.password} onChange={update} placeholder="Admin123*" />
+            <input name="password" type="password" value={form.password} onChange={update} placeholder="Password" />
 
             <button className="btn primary">Ingresar</button>
 
