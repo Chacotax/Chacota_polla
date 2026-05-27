@@ -8,8 +8,8 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
-    usuario: "admin",
-    password: "Admin123*",
+    usuario: "",
+    password: "",
     nombres: "",
     apellidos: "",
     email: ""
