@@ -22,10 +22,6 @@ export default function MundialPage() {
       </header>
 
       <section className="panel">
-        <div className="panel-title">
-          <h3>Grupos del Mundial</h3>
-          <small>Los equipos pueden venir desde API o carga manual.</small>
-        </div>
 
         <div className="groups-grid">
           {mapa.grupos.map(g => (
@@ -52,23 +48,7 @@ export default function MundialPage() {
         </div>
       </section>
 
-      <section className="panel">
-        <div className="panel-title">
-          <h3>Fases y fixture</h3>
-        </div>
-        {Object.entries(mapa.fases || {}).map(([fase, partidos]) => (
-          <div key={fase} className="phase-block">
-            <h4>{fase}</h4>
-            {partidos.map(p => (
-              <div className="fixture-line" key={p.id_partido}>
-                <span>{p.fecha_hora || "Sin fecha"}</span>
-                <strong>{p.equipo_local || "Por definir"} vs {p.equipo_visitante || "Por definir"}</strong>
-                <small>{p.estadio || "Estadio por confirmar"} · {p.ciudad || ""}</small>
-              </div>
-            ))}
-          </div>
-        ))}
-      </section>
+
     </div>
   );
 }

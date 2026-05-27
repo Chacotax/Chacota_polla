@@ -12,36 +12,6 @@ import { useAuth } from "../context/AuthContext";
 import Alert from "../components/Alert";
 import Loading from "../components/Loading";
 
-const POSITION_ORDER = [
-  "Arqueros",
-  "Defensas",
-  "Mediocampistas",
-  "Delanteros",
-  "Otros"
-];
-
-function normalizePosition(posicion = "") {
-  const p = String(posicion).toLowerCase();
-
-  if (p.includes("goal") || p.includes("keeper") || p.includes("arquero") || p.includes("portero")) {
-    return "Arqueros";
-  }
-
-  if (p.includes("defender") || p.includes("defensa") || p.includes("back")) {
-    return "Defensas";
-  }
-
-  if (p.includes("midfielder") || p.includes("midfield") || p.includes("mediocamp")) {
-    return "Mediocampistas";
-  }
-
-  if (p.includes("forward") || p.includes("striker") || p.includes("winger") || p.includes("delanter")) {
-    return "Delanteros";
-  }
-
-  return "Otros";
-}
-
 function getPlayerName(jugador) {
   return (
       jugador?.nombre_popular ||
@@ -92,7 +62,7 @@ function TeamFlag({ src, alt, size = 34 }) {
   );
 }
 
-function PlayerJerseyCard({ jugador, active, onClick }) {
+function PlayerBetCard({ jugador, active, onClick, teamName }) {
   const nombre = getPlayerName(jugador);
   const posicion = jugador.posicion || "Sin posición";
   const dorsal = jugador.dorsal || "--";
@@ -100,27 +70,55 @@ function PlayerJerseyCard({ jugador, active, onClick }) {
   return (
       <button
           type="button"
-          className={`jersey-player-card ${active ? "active" : ""}`}
+          className={`bet-player-card ${active ? "active" : ""}`}
           onClick={onClick}
       >
-        <div className="jersey-visual">
-          <div className="jersey-shirt">
-            <Shirt size={42} />
-            <strong>{dorsal}</strong>
-          </div>
+        <div className="bet-player-shirt">
+          <Shirt size={38} />
+          <strong>{dorsal}</strong>
         </div>
 
-        <div className="jersey-info">
+        <div className="bet-player-info">
           <strong>{nombre}</strong>
           <span>{posicion}</span>
+          <small>{teamName || "Equipo"}</small>
         </div>
 
-        <div className="jersey-footer">
-          <UserRound size={14} />
-          <small>Seleccionar goleador</small>
+        <div className="bet-player-check">
+          <UserRound size={13} />
+          <span>{active ? "Seleccionado" : "Elegir"}</span>
         </div>
       </button>
   );
+}
+
+function getPredictionLabelByGoals(prediccion, partido) {
+  const golesLocal = Number(prediccion?.goles_local_predicho ?? 0);
+  const golesVisitante = Number(prediccion?.goles_visitante_predicho ?? 0);
+
+  if (golesLocal > golesVisitante) {
+    return `Gana ${partido?.equipo_local || "Local"}`;
+  }
+
+  if (golesVisitante > golesLocal) {
+    return `Gana ${partido?.equipo_visitante || "Visitante"}`;
+  }
+
+  return "Empate";
+}
+
+function normalizarGoleadores(goleadores) {
+  if (!Array.isArray(goleadores)) return [];
+
+  return goleadores
+      .map((g) => {
+        if (typeof g === "object") {
+          return Number(g.id_jugador);
+        }
+
+        return Number(g);
+      })
+      .filter(Boolean);
 }
 
 export default function PartidosPage() {
@@ -129,11 +127,11 @@ export default function PartidosPage() {
   const [partidos, setPartidos] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [jugadores, setJugadores] = useState([]);
+  const [predicciones, setPredicciones] = useState([]);
 
   const [form, setForm] = useState({
     id_grupo: "",
     id_partido: "",
-    equipo_ganador_predicho: "",
     goles_local_predicho: 0,
     goles_visitante_predicho: 0,
     goleadores: []
@@ -143,20 +141,45 @@ export default function PartidosPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const getPrediccionPartido = (idPartido, idGrupo = null) => {
+    return predicciones.find((p) => {
+      const mismoPartido = Number(p.id_partido) === Number(idPartido);
+
+      if (!idGrupo) {
+        return mismoPartido;
+      }
+
+      return mismoPartido && Number(p.id_grupo) === Number(idGrupo);
+    });
+  };
+
   const load = async () => {
     setLoading(true);
     setError("");
 
     try {
-      const [p, g, j] = await Promise.all([
+      const [p, g, j, pr] = await Promise.all([
         api.partidos(),
         api.misGrupos(user.id_usuario),
-        api.jugadores()
+        api.jugadores(),
+        api.misPredicciones
+            ? api.misPredicciones(user.id_usuario)
+            : Promise.resolve([])
       ]);
 
+      const gruposData = Array.isArray(g) ? g : [];
+
       setPartidos(Array.isArray(p) ? p : []);
-      setGrupos(Array.isArray(g) ? g : []);
+      setGrupos(gruposData);
       setJugadores(Array.isArray(j) ? j : []);
+      setPredicciones(Array.isArray(pr) ? pr : []);
+
+      if (gruposData.length > 0) {
+        setForm((prev) => ({
+          ...prev,
+          id_grupo: prev.id_grupo || String(gruposData[0].id_grupo)
+        }));
+      }
     } catch (err) {
       setError(err.message || "No se pudo cargar la información.");
     } finally {
@@ -166,11 +189,20 @@ export default function PartidosPage() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const partidoSeleccionado = useMemo(() => {
-    return partidos.find((p) => Number(p.id_partido) === Number(form.id_partido));
+    return partidos.find(
+        (p) => Number(p.id_partido) === Number(form.id_partido)
+    );
   }, [partidos, form.id_partido]);
+
+  const prediccionSeleccionada = useMemo(() => {
+    if (!form.id_partido) return null;
+
+    return getPrediccionPartido(form.id_partido, form.id_grupo);
+  }, [form.id_partido, form.id_grupo, predicciones]);
 
   const jugadoresPartido = useMemo(() => {
     if (!partidoSeleccionado) return [];
@@ -183,54 +215,59 @@ export default function PartidosPage() {
     );
   }, [jugadores, partidoSeleccionado]);
 
-  const jugadoresLocal = useMemo(() => {
-    if (!partidoSeleccionado) return [];
+  const resultadoCalculado = useMemo(() => {
+    if (!partidoSeleccionado) {
+      return {
+        tipo: "",
+        idGanador: null,
+        label: "Selecciona un partido"
+      };
+    }
 
-    return jugadoresPartido.filter(
-        (j) => Number(j.id_equipo) === Number(partidoSeleccionado.id_equipo_local)
-    );
-  }, [jugadoresPartido, partidoSeleccionado]);
+    const golesLocal = Number(form.goles_local_predicho || 0);
+    const golesVisitante = Number(form.goles_visitante_predicho || 0);
 
-  const jugadoresVisitante = useMemo(() => {
-    if (!partidoSeleccionado) return [];
+    if (golesLocal > golesVisitante) {
+      return {
+        tipo: "GANADOR",
+        idGanador: Number(partidoSeleccionado.id_equipo_local),
+        label: `Gana ${partidoSeleccionado.equipo_local || "local"}`
+      };
+    }
 
-    return jugadoresPartido.filter(
-        (j) => Number(j.id_equipo) === Number(partidoSeleccionado.id_equipo_visitante)
-    );
-  }, [jugadoresPartido, partidoSeleccionado]);
+    if (golesVisitante > golesLocal) {
+      return {
+        tipo: "GANADOR",
+        idGanador: Number(partidoSeleccionado.id_equipo_visitante),
+        label: `Gana ${partidoSeleccionado.equipo_visitante || "visitante"}`
+      };
+    }
 
-  const groupPlayersByPosition = (lista) => {
-    const grouped = {};
-    POSITION_ORDER.forEach((p) => {
-      grouped[p] = [];
-    });
-
-    lista.forEach((j) => {
-      const key = normalizePosition(j.posicion);
-      grouped[key].push(j);
-    });
-
-    return grouped;
-  };
-
-  const localByPosition = useMemo(
-      () => groupPlayersByPosition(jugadoresLocal),
-      [jugadoresLocal]
-  );
-
-  const visitanteByPosition = useMemo(
-      () => groupPlayersByPosition(jugadoresVisitante),
-      [jugadoresVisitante]
-  );
+    return {
+      tipo: "EMPATE",
+      idGanador: null,
+      label: "Empate"
+    };
+  }, [
+    form.goles_local_predicho,
+    form.goles_visitante_predicho,
+    partidoSeleccionado
+  ]);
 
   const selectMatch = (p) => {
+    const prediccionGuardada = getPrediccionPartido(
+        p.id_partido,
+        form.id_grupo
+    );
+
     setForm((prev) => ({
       ...prev,
       id_partido: p.id_partido,
-      equipo_ganador_predicho: "",
-      goles_local_predicho: 0,
-      goles_visitante_predicho: 0,
-      goleadores: []
+      goles_local_predicho:
+          prediccionGuardada?.goles_local_predicho ?? 0,
+      goles_visitante_predicho:
+          prediccionGuardada?.goles_visitante_predicho ?? 0,
+      goleadores: normalizarGoleadores(prediccionGuardada?.goleadores)
     }));
 
     setMessage("");
@@ -252,6 +289,26 @@ export default function PartidosPage() {
     });
   };
 
+  const getPlayerTeamName = (jugador) => {
+    if (!partidoSeleccionado) return "";
+
+    if (
+        Number(jugador.id_equipo) ===
+        Number(partidoSeleccionado.id_equipo_local)
+    ) {
+      return partidoSeleccionado.equipo_local;
+    }
+
+    if (
+        Number(jugador.id_equipo) ===
+        Number(partidoSeleccionado.id_equipo_visitante)
+    ) {
+      return partidoSeleccionado.equipo_visitante;
+    }
+
+    return "";
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -267,80 +324,216 @@ export default function PartidosPage() {
       return;
     }
 
-    if (form.equipo_ganador_predicho === "") {
-      setError("Debes seleccionar local, empate o visitante.");
-      return;
-    }
-
     try {
       await api.guardarPrediccion({
         id_usuario: user.id_usuario,
         id_grupo: Number(form.id_grupo),
         id_partido: Number(form.id_partido),
-        equipo_ganador_predicho:
-            form.equipo_ganador_predicho === "EMPATE"
-                ? 0
-                : Number(form.equipo_ganador_predicho),
+        equipo_ganador_predicho: resultadoCalculado.idGanador,
+        resultado_predicho: resultadoCalculado.tipo,
         goles_local_predicho: Number(form.goles_local_predicho),
         goles_visitante_predicho: Number(form.goles_visitante_predicho),
         goleadores: form.goleadores.map(Number)
       });
 
       setMessage("Predicción guardada correctamente.");
+
+      const nuevasPredicciones = api.misPredicciones
+          ? await api.misPredicciones(user.id_usuario)
+          : [];
+
+      setPredicciones(Array.isArray(nuevasPredicciones) ? nuevasPredicciones : []);
     } catch (err) {
       setError(err.message || "No se pudo guardar la predicción.");
     }
   };
 
-  const renderPlayersCarousel = (title, teamName, flagUrl, groupedPlayers) => {
-    const total = POSITION_ORDER.reduce(
-        (acc, position) => acc + (groupedPlayers[position]?.length || 0),
-        0
-    );
+  const renderSavedPredictionCard = (prediccion, partido, compact = false) => {
+    if (!prediccion || !partido) return null;
 
     return (
-        <div className="team-scorers-block">
-          <div className="team-scorers-header">
-            <div className="team-scorers-title">
-              <TeamFlag src={flagUrl} alt={teamName} size={38} />
+        <div
+            className={`fixture-saved-prediction ${
+                compact ? "compact-saved-prediction" : ""
+            }`}
+        >
+          <span>Tu predicción</span>
+
+          <div className="fixture-saved-score">
+            <strong>{getTeamShortName(partido.equipo_local || "Local")}</strong>
+
+            <b>
+              {prediccion.goles_local_predicho ?? 0} -{" "}
+              {prediccion.goles_visitante_predicho ?? 0}
+            </b>
+
+            <strong>
+              {getTeamShortName(partido.equipo_visitante || "Visitante")}
+            </strong>
+          </div>
+
+          <small>{getPredictionLabelByGoals(prediccion, partido)}</small>
+        </div>
+    );
+  };
+
+  const renderPredictionPanel = (mobile = false) => {
+    if (!partidoSeleccionado) return null;
+
+    return (
+        <section
+            className={`panel prediction-panel ${
+                mobile ? "mobile-inline-prediction" : "desktop-prediction-panel"
+            }`}
+        >
+          <div className="panel-title">
+            <h3>Mi predicción</h3>
+          </div>
+
+          <form className="form prediction-form" onSubmit={submit}>
+            {prediccionSeleccionada &&
+                renderSavedPredictionCard(
+                    prediccionSeleccionada,
+                    partidoSeleccionado,
+                    true
+                )}
+
+            <div className="prediction-form-grid prediction-form-grid-single">
               <div>
-                <h4>{title}</h4>
-                <p>{teamName}</p>
+                <label>Grupo de polla</label>
+                <select
+                    value={form.id_grupo}
+                    onChange={(e) => {
+                      const nuevoGrupo = e.target.value;
+                      const prediccionGuardada = form.id_partido
+                          ? getPrediccionPartido(form.id_partido, nuevoGrupo)
+                          : null;
+
+                      setForm({
+                        ...form,
+                        id_grupo: nuevoGrupo,
+                        goles_local_predicho:
+                            prediccionGuardada?.goles_local_predicho ?? 0,
+                        goles_visitante_predicho:
+                            prediccionGuardada?.goles_visitante_predicho ?? 0,
+                        goleadores: normalizarGoleadores(
+                            prediccionGuardada?.goleadores
+                        )
+                      });
+                    }}
+                >
+                  <option value="">Seleccione</option>
+                  {grupos.map((g) => (
+                      <option key={g.id_grupo} value={g.id_grupo}>
+                        {g.nombre}
+                      </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="prediction-summary-card">
+                <span>Resultado calculado</span>
+                <strong>{resultadoCalculado.label}</strong>
+                <small>Se interpreta automáticamente según el marcador.</small>
               </div>
             </div>
 
-            <span>{total} jugadores</span>
-          </div>
-
-          {POSITION_ORDER.map((position) => {
-            const list = groupedPlayers[position] || [];
-            if (!list.length) return null;
-
-            return (
-                <div className="scorer-position-row" key={position}>
-                  <div className="scorer-position-title">
-                    <strong>{position}</strong>
-                    <small>{list.length} disponible(s)</small>
+            <div className="prediction-score-grid pro-score-grid">
+              <div className="score-team-card">
+                <div className="score-team-head no-flag">
+                  <div>
+                    <strong>
+                      {partidoSeleccionado.equipo_local || "Local"}
+                    </strong>
+                    <small>Local</small>
                   </div>
+                </div>
 
-                  <div className="jersey-carousel">
-                    {list.map((j) => {
-                      const active = form.goleadores.includes(Number(j.id_jugador));
+                <input
+                    type="number"
+                    min="0"
+                    value={form.goles_local_predicho}
+                    onChange={(e) =>
+                        setForm({
+                          ...form,
+                          goles_local_predicho: e.target.value
+                        })
+                    }
+                    aria-label={`Goles de ${
+                        partidoSeleccionado.equipo_local || "local"
+                    }`}
+                />
+              </div>
+
+              <div className="score-team-card">
+                <div className="score-team-head no-flag">
+                  <div>
+                    <strong>
+                      {partidoSeleccionado.equipo_visitante || "Visitante"}
+                    </strong>
+                    <small>Visitante</small>
+                  </div>
+                </div>
+
+                <input
+                    type="number"
+                    min="0"
+                    value={form.goles_visitante_predicho}
+                    onChange={(e) =>
+                        setForm({
+                          ...form,
+                          goles_visitante_predicho: e.target.value
+                        })
+                    }
+                    aria-label={`Goles de ${
+                        partidoSeleccionado.equipo_visitante || "visitante"
+                    }`}
+                />
+              </div>
+            </div>
+
+            <div className="scorers-section">
+              <div className="section-headline">
+                <h4>¿Por quién apostar?</h4>
+                <p>
+                  Selecciona los posibles goleadores. Están en una sola fila para
+                  que puedas deslizar.
+                </p>
+              </div>
+
+              {jugadoresPartido.length === 0 ? (
+                  <div className="empty-player-state">
+                    <Goal size={30} />
+                    <p>No hay jugadores cargados para este partido.</p>
+                  </div>
+              ) : (
+                  <div className="single-players-carousel">
+                    {jugadoresPartido.map((j) => {
+                      const active = form.goleadores.includes(
+                          Number(j.id_jugador)
+                      );
 
                       return (
-                          <PlayerJerseyCard
+                          <PlayerBetCard
                               key={j.id_jugador}
                               jugador={j}
                               active={active}
+                              teamName={getPlayerTeamName(j)}
                               onClick={() => toggleScorer(j.id_jugador)}
                           />
                       );
                     })}
                   </div>
-                </div>
-            );
-          })}
-        </div>
+              )}
+            </div>
+
+            <div className="prediction-actions">
+              <button className="btn primary" type="submit">
+                Guardar predicción
+              </button>
+            </div>
+          </form>
+        </section>
     );
   };
 
@@ -353,8 +546,8 @@ export default function PartidosPage() {
             <span className="eyebrow">Fixture y predicciones</span>
             <h2>Partidos</h2>
             <p>
-              Selecciona un partido. Al hacerlo se habilitará el formulario para
-              registrar tu pronóstico.
+              Selecciona un partido y registra tu pronóstico. Si ya apostaste, tu
+              predicción aparecerá directamente en el fixture.
             </p>
           </div>
         </header>
@@ -370,227 +563,85 @@ export default function PartidosPage() {
 
             <div className="match-list modern-match-list">
               {partidos.map((p) => {
-                const selected = Number(form.id_partido) === Number(p.id_partido);
+                const selected =
+                    Number(form.id_partido) === Number(p.id_partido);
+
+                const prediccionGuardada = getPrediccionPartido(
+                    p.id_partido,
+                    form.id_grupo
+                );
 
                 return (
-                    <button
-                        type="button"
-                        className={`match-card pro-match-card ${selected ? "selected" : ""}`}
-                        key={p.id_partido}
-                        onClick={() => selectMatch(p)}
-                    >
-                      <div className="match-main-row">
-                        <div className="team-compact">
-                          <TeamFlag
-                              src={p.bandera_local || p.bandera_url_local}
-                              alt={p.equipo_local}
-                              size={34}
-                          />
-                          <strong>{getTeamShortName(p.equipo_local || "Por definir")}</strong>
+                    <div className="match-with-prediction" key={p.id_partido}>
+                      <button
+                          type="button"
+                          className={`match-card pro-match-card ${
+                              selected ? "selected" : ""
+                          }`}
+                          onClick={() => selectMatch(p)}
+                      >
+                        <div className="match-main-row">
+                          <div className="team-compact">
+                            <TeamFlag
+                                src={p.bandera_local || p.bandera_url_local}
+                                alt={p.equipo_local}
+                                size={34}
+                            />
+                            <strong>
+                              {getTeamShortName(p.equipo_local || "Por definir")}
+                            </strong>
+                          </div>
+
+                          <span className="match-vs-pill">VS</span>
+
+                          <div className="team-compact right">
+                            <strong>
+                              {getTeamShortName(
+                                  p.equipo_visitante || "Por definir"
+                              )}
+                            </strong>
+                            <TeamFlag
+                                src={p.bandera_visitante || p.bandera_url_visitante}
+                                alt={p.equipo_visitante}
+                                size={34}
+                            />
+                          </div>
                         </div>
 
-                        <span className="match-vs-pill">VS</span>
+                        <div className="match-meta-grid">
+                      <span>
+                        <CalendarDays size={14} />
+                        {formatMatchDate(p.fecha_hora)}
+                      </span>
 
-                        <div className="team-compact right">
-                          <strong>{getTeamShortName(p.equipo_visitante || "Por definir")}</strong>
-                          <TeamFlag
-                              src={p.bandera_visitante || p.bandera_url_visitante}
-                              alt={p.equipo_visitante}
-                              size={34}
-                          />
+                          <span>
+                        <Trophy size={14} />
+                            {p.fase || p.fase_nombre || "Sin fase"}
+                      </span>
+
+                          <span>
+                        <Flag size={14} />
+                            {p.grupo_nombre || "Sin grupo"}
+                      </span>
                         </div>
-                      </div>
 
-                      <div className="match-meta-grid">
-                    <span>
-                      <CalendarDays size={14} />
-                      {formatMatchDate(p.fecha_hora)}
-                    </span>
+                        <div className="match-status-row">
+                          <small>{p.ciudad || "Por definir"}</small>
+                          <em>{p.estado_partido || "Pendiente"}</em>
+                        </div>
 
-                        <span>
-                      <Trophy size={14} />
-                          {p.fase || p.fase_nombre || "Sin fase"}
-                    </span>
+                        {prediccionGuardada &&
+                            renderSavedPredictionCard(prediccionGuardada, p)}
+                      </button>
 
-                        <span>
-                      <Flag size={14} />
-                          {p.grupo_nombre || "Sin grupo"}
-                    </span>
-                      </div>
-
-                      <div className="match-status-row">
-                        <small>{p.ciudad || "Por definir"}</small>
-                        <em>{p.estado_partido || "Pendiente"}</em>
-                      </div>
-                    </button>
+                      {selected && renderPredictionPanel(true)}
+                    </div>
                 );
               })}
             </div>
           </section>
 
-          {partidoSeleccionado && (
-              <section className="panel prediction-panel">
-                <div className="panel-title">
-                  <h3>Mi predicción</h3>
-                </div>
-
-                <form className="form prediction-form" onSubmit={submit}>
-                  <div className="prediction-hero">
-                    <div className="prediction-team">
-                      <TeamFlag
-                          src={
-                              partidoSeleccionado.bandera_local ||
-                              partidoSeleccionado.bandera_url_local
-                          }
-                          alt={partidoSeleccionado.equipo_local}
-                          size={56}
-                      />
-                      <div>
-                        <strong>{partidoSeleccionado.equipo_local || "Por definir"}</strong>
-                        <small>Local</small>
-                      </div>
-                    </div>
-
-                    <div className="prediction-center">
-                      <span className="prediction-vs">VS</span>
-                      <small>{formatMatchDate(partidoSeleccionado.fecha_hora)}</small>
-                      <small>{partidoSeleccionado.grupo_nombre || "Sin grupo"}</small>
-                    </div>
-
-                    <div className="prediction-team right">
-                      <div>
-                        <strong>
-                          {partidoSeleccionado.equipo_visitante || "Por definir"}
-                        </strong>
-                        <small>Visitante</small>
-                      </div>
-
-                      <TeamFlag
-                          src={
-                              partidoSeleccionado.bandera_visitante ||
-                              partidoSeleccionado.bandera_url_visitante
-                          }
-                          alt={partidoSeleccionado.equipo_visitante}
-                          size={56}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="prediction-form-grid">
-                    <div>
-                      <label>Grupo de polla</label>
-                      <select
-                          value={form.id_grupo}
-                          onChange={(e) =>
-                              setForm({ ...form, id_grupo: e.target.value })
-                          }
-                      >
-                        <option value="">Seleccione</option>
-                        {grupos.map((g) => (
-                            <option key={g.id_grupo} value={g.id_grupo}>
-                              {g.nombre}
-                            </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label>Resultado predicho</label>
-                      <select
-                          value={form.equipo_ganador_predicho}
-                          onChange={(e) =>
-                              setForm({
-                                ...form,
-                                equipo_ganador_predicho: e.target.value
-                              })
-                          }
-                      >
-                        <option value="">Seleccione</option>
-                        <option value={partidoSeleccionado.id_equipo_local}>
-                          Gana {partidoSeleccionado.equipo_local}
-                        </option>
-                        <option value="EMPATE">Empate</option>
-                        <option value={partidoSeleccionado.id_equipo_visitante}>
-                          Gana {partidoSeleccionado.equipo_visitante}
-                        </option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="prediction-score-grid">
-                    <div className="score-input-card">
-                      <label>Goles local</label>
-                      <input
-                          type="number"
-                          min="0"
-                          value={form.goles_local_predicho}
-                          onChange={(e) =>
-                              setForm({
-                                ...form,
-                                goles_local_predicho: e.target.value
-                              })
-                          }
-                      />
-                    </div>
-
-                    <div className="score-input-card">
-                      <label>Goles visitante</label>
-                      <input
-                          type="number"
-                          min="0"
-                          value={form.goles_visitante_predicho}
-                          onChange={(e) =>
-                              setForm({
-                                ...form,
-                                goles_visitante_predicho: e.target.value
-                              })
-                          }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="scorers-section">
-                    <div className="section-headline">
-                      <h4>Goleadores</h4>
-                      <p>
-                        Elige los posibles anotadores. Usa el carrusel por posición.
-                      </p>
-                    </div>
-
-                    {jugadoresPartido.length === 0 ? (
-                        <div className="empty-player-state">
-                          <Goal size={30} />
-                          <p>No hay jugadores cargados para este partido.</p>
-                        </div>
-                    ) : (
-                        <div className="players-area">
-                          {renderPlayersCarousel(
-                              "Plantel local",
-                              partidoSeleccionado.equipo_local,
-                              partidoSeleccionado.bandera_local ||
-                              partidoSeleccionado.bandera_url_local,
-                              localByPosition
-                          )}
-
-                          {renderPlayersCarousel(
-                              "Plantel visitante",
-                              partidoSeleccionado.equipo_visitante,
-                              partidoSeleccionado.bandera_visitante ||
-                              partidoSeleccionado.bandera_url_visitante,
-                              visitanteByPosition
-                          )}
-                        </div>
-                    )}
-                  </div>
-
-                  <div className="prediction-actions">
-                    <button className="btn primary" type="submit">
-                      Guardar predicción
-                    </button>
-                  </div>
-                </form>
-              </section>
-          )}
+          {partidoSeleccionado && renderPredictionPanel(false)}
         </div>
       </div>
   );
