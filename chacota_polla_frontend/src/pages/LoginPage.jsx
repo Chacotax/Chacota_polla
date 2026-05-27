@@ -85,13 +85,13 @@ export default function LoginPage() {
         ) : (
           <form onSubmit={doRegister} className="form">
             <label>Usuario</label>
-            <input name="usuario" value={form.usuario} onChange={update} placeholder="jmeneses" />
+            <input name="usuario" value={form.usuario} onChange={update} placeholder="" />
 
             <label>Nombres</label>
-            <input name="nombres" value={form.nombres} onChange={update} placeholder="Juan" />
+            <input name="nombres" value={form.nombres} onChange={update} placeholder="" />
 
             <label>Apellidos</label>
-            <input name="apellidos" value={form.apellidos} onChange={update} placeholder="Meneses" />
+            <input name="apellidos" value={form.apellidos} onChange={update} placeholder="" />
 
             <label>Email opcional</label>
             <input name="email" value={form.email} onChange={update} placeholder="correo opcional" />
