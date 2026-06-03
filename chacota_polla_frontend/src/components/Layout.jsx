@@ -8,6 +8,7 @@ import {
   LogOut,
   Home,
   Settings,
+  ClipboardCheck,
   MessageCircle,
   Menu,
   X
@@ -20,6 +21,7 @@ const nav = [
   { key: "partidos", label: "Partidos", icon: CalendarDays },
   { key: "grupos", label: "Mis grupos", icon: Users },
   { key: "ranking", label: "Ranking", icon: Trophy },
+  { key: "resultados", label: "Resultados", icon: ClipboardCheck, admin: true },
   { key: "admin", label: "Admin", icon: Settings, admin: true }
 ];
 
@@ -72,7 +74,7 @@ export default function Layout({ active, onNavigate, children }) {
                 <Trophy size={22} />
               </div>
               <div>
-                <h1>Chacota Polla</h1>
+                <h1>Polla UP</h1>
                 <p>Mundialista 2026</p>
               </div>
             </div>
@@ -92,7 +94,7 @@ export default function Layout({ active, onNavigate, children }) {
               <Trophy size={22} />
             </div>
             <div>
-              <h1>Chacota Polla</h1>
+              <h1>Polla UP</h1>
               <p>Mundialista 2026</p>
             </div>
           </div>

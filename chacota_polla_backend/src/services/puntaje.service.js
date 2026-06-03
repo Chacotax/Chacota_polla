@@ -13,9 +13,44 @@ function partidoPermitePrediccion(estado) {
   return [
     "PENDIENTE",
     "NOT_STARTED",
-    "NOT STARTED",
+    "NOTSTARTED",
     "NS"
   ].includes(estadoNormalizado);
+}
+
+function parseFechaPartidoPeru(fechaHora) {
+  if (!fechaHora) return null;
+
+  const raw = String(fechaHora).trim();
+  if (!raw) return null;
+
+  if (raw.includes("T") && /Z$|[+-]\d{2}:\d{2}$/.test(raw)) {
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const normalizada = raw.replace(" ", "T");
+  const date = new Date(`${normalizada}-05:00`);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function partidoAunNoInicio(fechaHora, minutosBloqueo = 5) {
+  const fechaPartido = parseFechaPartidoPeru(fechaHora);
+
+  if (!fechaPartido) return true;
+
+  const ahora = new Date();
+  const limite = new Date(fechaPartido.getTime() - minutosBloqueo * 60 * 1000);
+
+  return ahora < limite;
+}
+
+function puedeGuardarPrediccion(partido) {
+  return (
+    partidoPermitePrediccion(partido.estado_partido) &&
+    partidoAunNoInicio(partido.fecha_hora, 5)
+  );
 }
 
 function calcularEquipoGanadorPredicho(golesLocal, golesVisitante, idEquipoLocal, idEquipoVisitante) {
@@ -32,6 +67,40 @@ function calcularEquipoGanadorPredicho(golesLocal, golesVisitante, idEquipoLocal
   return null;
 }
 
+function normalizarGoleadoresPayload(goleadores = []) {
+  const ids = [];
+
+  for (const g of goleadores || []) {
+    const idJugador = typeof g === "object" ? g.id_jugador : g;
+    const numero = Number(idJugador);
+
+    if (numero && !ids.includes(numero)) {
+      ids.push(numero);
+    }
+  }
+
+  return ids;
+}
+
+function normalizarGoleadoresBD(value) {
+  if (!value) return [];
+
+  return String(value)
+    .split(",")
+    .map((x) => Number(x))
+    .filter(Boolean);
+}
+
+function resultadoReal(partido) {
+  const gl = Number(partido.goles_local);
+  const gv = Number(partido.goles_visitante);
+
+  if (Number.isNaN(gl) || Number.isNaN(gv)) return null;
+  if (gl > gv) return Number(partido.id_equipo_local);
+  if (gv > gl) return Number(partido.id_equipo_visitante);
+  return null;
+}
+
 export async function guardarPrediccion(db, payload) {
   const {
     id_grupo,
@@ -45,6 +114,12 @@ export async function guardarPrediccion(db, payload) {
 
   if (!id_grupo || !id_usuario || !id_partido) {
     throw new Error("Debe enviar id_grupo, id_usuario e id_partido.");
+  }
+
+  const goleadoresNormalizados = normalizarGoleadoresPayload(goleadores);
+
+  if (goleadoresNormalizados.length > 3) {
+    throw new Error("Solo puedes seleccionar hasta 3 jugadores goleadores.");
   }
 
   const participante = await first(
@@ -73,8 +148,8 @@ export async function guardarPrediccion(db, payload) {
     throw new Error("Partido no encontrado.");
   }
 
-  if (!partidoPermitePrediccion(partido.estado_partido)) {
-    throw new Error("El partido ya inició o finalizó. No se puede modificar la predicción.");
+  if (!puedeGuardarPrediccion(partido)) {
+    throw new Error("La predicción está cerrada. El partido ya inició o está por iniciar.");
   }
 
   const ganadorCalculado = calcularEquipoGanadorPredicho(
@@ -113,7 +188,7 @@ export async function guardarPrediccion(db, payload) {
        SET equipo_ganador_predicho = ?,
            goles_local_predicho = ?,
            goles_visitante_predicho = ?,
-           fecha_actualizacion = CURRENT_TIMESTAMP
+           fecha_actualizacion = datetime('now', '-5 hours')
        WHERE id_prediccion = ?`,
       [
         ganadorFinal,
@@ -139,9 +214,10 @@ export async function guardarPrediccion(db, payload) {
          id_partido,
          equipo_ganador_predicho,
          goles_local_predicho,
-         goles_visitante_predicho
+         goles_visitante_predicho,
+         fecha_registro
        )
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now', '-5 hours'))`,
       [
         id_grupo,
         id_usuario,
@@ -155,33 +231,76 @@ export async function guardarPrediccion(db, payload) {
     id_prediccion = result.meta.last_row_id;
   }
 
-  for (const g of goleadores || []) {
-    const idJugador = typeof g === "object" ? g.id_jugador : g;
-    const goles = typeof g === "object" ? Number(g.goles_predichos || 1) : 1;
-
-    if (idJugador) {
-      await run(
-        db,
-        `INSERT OR IGNORE INTO prediccion_goleadores
-         (
-           id_prediccion,
-           id_jugador,
-           goles_predichos
-         )
-         VALUES (?, ?, ?)`,
-        [
-          id_prediccion,
-          idJugador,
-          goles
-        ]
-      );
-    }
+  for (const idJugador of goleadoresNormalizados) {
+    await run(
+      db,
+      `INSERT OR IGNORE INTO prediccion_goleadores
+       (
+         id_prediccion,
+         id_jugador,
+         goles_predichos
+       )
+       VALUES (?, ?, 1)`,
+      [id_prediccion, idJugador]
+    );
   }
 
   return {
     id_prediccion,
-    equipo_ganador_predicho: ganadorFinal
+    equipo_ganador_predicho: ganadorFinal,
+    goleadores: goleadoresNormalizados
   };
+}
+
+export async function listarMisPredicciones(db, id_usuario, id_grupo = null) {
+  if (!id_usuario) {
+    throw new Error("Debe enviar id_usuario.");
+  }
+
+  const params = [id_usuario];
+  let filtroGrupo = "";
+
+  if (id_grupo) {
+    filtroGrupo = " AND p.id_grupo = ? ";
+    params.push(id_grupo);
+  }
+
+  const rs = await db
+    .prepare(
+      `SELECT p.id_prediccion,
+              p.id_grupo,
+              p.id_usuario,
+              p.id_partido,
+              p.equipo_ganador_predicho,
+              p.goles_local_predicho,
+              p.goles_visitante_predicho,
+              p.bloqueado,
+              p.fecha_registro,
+              p.fecha_actualizacion,
+              GROUP_CONCAT(pg.id_jugador) AS goleadores
+       FROM predicciones p
+       LEFT JOIN prediccion_goleadores pg
+              ON pg.id_prediccion = p.id_prediccion
+       WHERE p.id_usuario = ?
+         AND p.estado = 1
+         ${filtroGrupo}
+       GROUP BY p.id_prediccion
+       ORDER BY p.fecha_registro DESC`
+    )
+    .bind(...params)
+    .all();
+
+  return (rs.results || []).map((p) => ({
+    ...p,
+    goles_local_predicho: Number(p.goles_local_predicho ?? 0),
+    goles_visitante_predicho: Number(p.goles_visitante_predicho ?? 0),
+    equipo_ganador_predicho:
+      p.equipo_ganador_predicho === null ||
+      p.equipo_ganador_predicho === undefined
+        ? null
+        : Number(p.equipo_ganador_predicho),
+    goleadores: normalizarGoleadoresBD(p.goleadores)
+  }));
 }
 
 export async function registrarResultado(db, payload) {
@@ -197,6 +316,13 @@ export async function registrarResultado(db, payload) {
     throw new Error("Debe enviar id_partido.");
   }
 
+  const ganadorCalculado =
+    Number(goles_local) > Number(goles_visitante)
+      ? ganador_equipo_id
+      : Number(goles_visitante) > Number(goles_local)
+        ? ganador_equipo_id
+        : null;
+
   await run(
     db,
     `UPDATE partidos
@@ -208,7 +334,7 @@ export async function registrarResultado(db, payload) {
     [
       goles_local,
       goles_visitante,
-      ganador_equipo_id,
+      ganadorCalculado,
       id_partido
     ]
   );
@@ -275,9 +401,10 @@ export async function recalcularPartido(db, id_partido) {
 
   const goleadoresRs = await db
     .prepare(
-      `SELECT id_jugador
+      `SELECT DISTINCT id_jugador
        FROM partido_goleadores
-       WHERE id_partido = ?`
+       WHERE id_partido = ?
+         AND id_jugador IS NOT NULL`
     )
     .bind(id_partido)
     .all();
@@ -286,60 +413,61 @@ export async function recalcularPartido(db, id_partido) {
     (goleadoresRs.results || []).map((g) => Number(g.id_jugador))
   );
 
+  const ganadorReal = resultadoReal(partido);
+
   for (const pred of predRs.results || []) {
     let total = 0;
     const detalles = [];
 
-    if (Number(pred.equipo_ganador_predicho) === Number(partido.ganador_equipo_id)) {
+    if (Number(pred.equipo_ganador_predicho) === Number(ganadorReal)) {
       total += 1;
-      detalles.push(["GANADOR", 1, "Acertó equipo ganador"]);
+      detalles.push(["RESULTADO", 1, "Acertó ganador o empate"]);
     } else {
-      detalles.push(["GANADOR", 0, "No acertó equipo ganador"]);
-    }
-
-    if (Number(pred.goles_local_predicho) === Number(partido.goles_local)) {
-      total += 1;
-      detalles.push(["GOLES_LOCAL", 1, "Acertó goles del equipo local"]);
-    } else {
-      detalles.push(["GOLES_LOCAL", 0, "No acertó goles del equipo local"]);
-    }
-
-    if (Number(pred.goles_visitante_predicho) === Number(partido.goles_visitante)) {
-      total += 1;
-      detalles.push(["GOLES_VISITANTE", 1, "Acertó goles del equipo visitante"]);
-    } else {
-      detalles.push(["GOLES_VISITANTE", 0, "No acertó goles del equipo visitante"]);
+      detalles.push(["RESULTADO", 0, "No acertó ganador o empate"]);
     }
 
     if (
       Number(pred.goles_local_predicho) === Number(partido.goles_local) &&
       Number(pred.goles_visitante_predicho) === Number(partido.goles_visitante)
     ) {
-      total += 1;
-      detalles.push(["MARCADOR_EXACTO", 1, "Acertó marcador exacto"]);
+      total += 2;
+      detalles.push(["MARCADOR_EXACTO", 2, "Acertó el marcador exacto"]);
     } else {
-      detalles.push(["MARCADOR_EXACTO", 0, "No acertó marcador exacto"]);
+      detalles.push(["MARCADOR_EXACTO", 0, "No acertó el marcador exacto"]);
     }
 
     const predGolsRs = await db
       .prepare(
-        `SELECT id_jugador
-         FROM prediccion_goleadores
-         WHERE id_prediccion = ?`
+        `SELECT pg.id_jugador,
+                COALESCE(j.nombre_popular, TRIM(COALESCE(j.nombre, '') || ' ' || COALESCE(j.apellido, ''))) AS jugador
+         FROM prediccion_goleadores pg
+         LEFT JOIN jugadores j
+                ON j.id_jugador = pg.id_jugador
+         WHERE pg.id_prediccion = ?`
       )
       .bind(pred.id_prediccion)
       .all();
 
-    let golesJugador = 0;
-
     for (const pg of predGolsRs.results || []) {
-      if (goleadoresReales.has(Number(pg.id_jugador))) {
-        golesJugador += 1;
+      const idJugador = Number(pg.id_jugador);
+      const nombreJugador = pg.jugador || `Jugador ${idJugador}`;
+
+      if (goleadoresReales.has(idJugador)) {
+        total += 1;
+        detalles.push([
+          "GOLEADOR_ACERTADO",
+          1,
+          `Acertó goleador: ${nombreJugador}`
+        ]);
+      } else {
+        total -= 1;
+        detalles.push([
+          "GOLEADOR_FALLADO",
+          -1,
+          `No acertó goleador: ${nombreJugador}`
+        ]);
       }
     }
-
-    total += golesJugador;
-    detalles.push(["GOLEADORES", golesJugador, `Acertó ${golesJugador} goleador(es)`]);
 
     const existing = await first(
       db,
@@ -348,11 +476,7 @@ export async function recalcularPartido(db, id_partido) {
        WHERE id_grupo = ?
          AND id_usuario = ?
          AND id_partido = ?`,
-      [
-        pred.id_grupo,
-        pred.id_usuario,
-        pred.id_partido
-      ]
+      [pred.id_grupo, pred.id_usuario, pred.id_partido]
     );
 
     let id_puntaje;
@@ -364,12 +488,9 @@ export async function recalcularPartido(db, id_partido) {
         db,
         `UPDATE puntajes
          SET total_puntos = ?,
-             fecha_calculo = CURRENT_TIMESTAMP
+             fecha_calculo = datetime('now', '-5 hours')
          WHERE id_puntaje = ?`,
-        [
-          total,
-          id_puntaje
-        ]
+        [total, id_puntaje]
       );
 
       await run(
@@ -386,15 +507,11 @@ export async function recalcularPartido(db, id_partido) {
            id_grupo,
            id_usuario,
            id_partido,
-           total_puntos
+           total_puntos,
+           fecha_calculo
          )
-         VALUES (?, ?, ?, ?)`,
-        [
-          pred.id_grupo,
-          pred.id_usuario,
-          pred.id_partido,
-          total
-        ]
+         VALUES (?, ?, ?, ?, datetime('now', '-5 hours'))`,
+        [pred.id_grupo, pred.id_usuario, pred.id_partido, total]
       );
 
       id_puntaje = result.meta.last_row_id;
@@ -411,12 +528,7 @@ export async function recalcularPartido(db, id_partido) {
            descripcion
          )
          VALUES (?, ?, ?, ?)`,
-        [
-          id_puntaje,
-          criterio,
-          puntos,
-          descripcion
-        ]
+        [id_puntaje, criterio, puntos, descripcion]
       );
     }
   }
@@ -434,29 +546,197 @@ export async function rankingGrupo(db, id_grupo) {
               u.usuario,
               u.nombres,
               u.apellidos,
-              COALESCE(SUM(p.total_puntos), 0) AS puntos,
-              COUNT(DISTINCT pr.id_prediccion) AS predicciones
+              COALESCE(puntos.total_puntos, 0) AS puntos,
+              COALESCE(preds.predicciones, 0) AS predicciones
        FROM grupo_participantes gp
        INNER JOIN usuarios u
                ON u.id_usuario = gp.id_usuario
-       LEFT JOIN puntajes p
-              ON p.id_grupo = gp.id_grupo
-             AND p.id_usuario = gp.id_usuario
-       LEFT JOIN predicciones pr
-              ON pr.id_grupo = gp.id_grupo
-             AND pr.id_usuario = gp.id_usuario
+       LEFT JOIN (
+              SELECT id_grupo,
+                     id_usuario,
+                     SUM(total_puntos) AS total_puntos
+              FROM puntajes
+              WHERE id_grupo = ?
+              GROUP BY id_grupo, id_usuario
+       ) puntos
+              ON puntos.id_grupo = gp.id_grupo
+             AND puntos.id_usuario = gp.id_usuario
+       LEFT JOIN (
+              SELECT id_grupo,
+                     id_usuario,
+                     COUNT(DISTINCT id_prediccion) AS predicciones
+              FROM predicciones
+              WHERE id_grupo = ?
+                AND estado = 1
+              GROUP BY id_grupo, id_usuario
+       ) preds
+              ON preds.id_grupo = gp.id_grupo
+             AND preds.id_usuario = gp.id_usuario
        WHERE gp.id_grupo = ?
          AND gp.estado = 1
+       ORDER BY puntos DESC,
+                predicciones DESC,
+                u.usuario ASC`
+    )
+    .bind(id_grupo, id_grupo, id_grupo)
+    .all();
+
+  return (rs.results || []).map((r, index) => ({
+    posicion: index + 1,
+    ...r,
+    puntos: Number(r.puntos || 0),
+    predicciones: Number(r.predicciones || 0)
+  }));
+}
+
+export async function rankingGeneralEmpresa(db) {
+  const rs = await db
+    .prepare(
+      `SELECT
+          u.id_usuario,
+          u.usuario,
+          u.nombres,
+          u.apellidos,
+          COALESCE(SUM(p.total_puntos), 0) AS puntos,
+          COUNT(DISTINCT p.id_partido) AS partidos_puntuados,
+          COUNT(DISTINCT pr.id_prediccion) AS predicciones,
+          COUNT(DISTINCT gp.id_grupo) AS grupos_participa
+       FROM usuarios u
+       INNER JOIN grupo_participantes gp
+               ON gp.id_usuario = u.id_usuario
+              AND gp.estado = 1
+       LEFT JOIN puntajes p
+              ON p.id_usuario = u.id_usuario
+             AND p.id_grupo = gp.id_grupo
+       LEFT JOIN predicciones pr
+              ON pr.id_usuario = u.id_usuario
+             AND pr.id_grupo = gp.id_grupo
+             AND pr.estado = 1
+       WHERE u.estado = 1
        GROUP BY u.id_usuario
        ORDER BY puntos DESC,
                 predicciones DESC,
                 u.usuario ASC`
     )
-    .bind(id_grupo)
     .all();
 
   return (rs.results || []).map((r, index) => ({
     posicion: index + 1,
-    ...r
+    id_usuario: Number(r.id_usuario),
+    usuario: r.usuario,
+    nombres: r.nombres,
+    apellidos: r.apellidos,
+    puntos: Number(r.puntos || 0),
+    partidos_puntuados: Number(r.partidos_puntuados || 0),
+    predicciones: Number(r.predicciones || 0),
+    grupos_participa: Number(r.grupos_participa || 0)
   }));
+}
+export async function listarGoleadoresPartido(db, id_partido) {
+  if (!id_partido) {
+    throw new Error("Debe enviar id_partido.");
+  }
+
+  const rs = await db
+    .prepare(
+      `SELECT
+          pg.id_partido_goleador,
+          pg.id_partido,
+          pg.id_jugador,
+          pg.id_equipo,
+          pg.minuto,
+          pg.tipo_gol,
+          j.nombre,
+          j.apellido,
+          j.nombre_popular,
+          j.dorsal,
+          e.nombre AS equipo
+       FROM partido_goleadores pg
+       LEFT JOIN jugadores j
+              ON j.id_jugador = pg.id_jugador
+       LEFT JOIN equipos e
+              ON e.id_equipo = pg.id_equipo
+       WHERE pg.id_partido = ?
+       ORDER BY
+          CASE WHEN pg.minuto IS NULL THEN 999 ELSE pg.minuto END,
+          pg.id_partido_goleador ASC`
+    )
+    .bind(id_partido)
+    .all();
+
+  return (rs.results || []).map((g) => ({
+    id_partido_goleador: Number(g.id_partido_goleador),
+    id_partido: Number(g.id_partido),
+    id_jugador: g.id_jugador ? Number(g.id_jugador) : null,
+    id_equipo: g.id_equipo ? Number(g.id_equipo) : null,
+    minuto: g.minuto ?? "",
+    tipo_gol: g.tipo_gol || "NORMAL",
+    nombre:
+      g.nombre_popular ||
+      [g.nombre, g.apellido].filter(Boolean).join(" ") ||
+      "Jugador",
+    equipo: g.equipo || "Equipo"
+  }));
+}
+export async function rankingGeneralGrupos(db) {
+  const rs = await db
+    .prepare(
+      `SELECT g.id_grupo,
+              g.nombre AS grupo,
+              COUNT(DISTINCT gp.id_usuario) AS cantidad_jugadores,
+              COALESCE(SUM(puntos.total_puntos), 0) AS total_puntos,
+              COALESCE(SUM(preds.predicciones), 0) AS total_predicciones
+       FROM grupos_polla g
+       LEFT JOIN grupo_participantes gp
+              ON gp.id_grupo = g.id_grupo
+             AND gp.estado = 1
+       LEFT JOIN (
+              SELECT id_grupo,
+                     id_usuario,
+                     SUM(total_puntos) AS total_puntos
+              FROM puntajes
+              GROUP BY id_grupo, id_usuario
+       ) puntos
+              ON puntos.id_grupo = gp.id_grupo
+             AND puntos.id_usuario = gp.id_usuario
+       LEFT JOIN (
+              SELECT id_grupo,
+                     id_usuario,
+                     COUNT(DISTINCT id_prediccion) AS predicciones
+              FROM predicciones
+              WHERE estado = 1
+              GROUP BY id_grupo, id_usuario
+       ) preds
+              ON preds.id_grupo = gp.id_grupo
+             AND preds.id_usuario = gp.id_usuario
+       WHERE g.estado = 1
+       GROUP BY g.id_grupo, g.nombre
+       ORDER BY
+         CASE
+           WHEN COUNT(DISTINCT gp.id_usuario) = 0 THEN 0
+           ELSE COALESCE(SUM(puntos.total_puntos), 0) * 1.0 / COUNT(DISTINCT gp.id_usuario)
+         END DESC,
+         total_puntos DESC,
+         cantidad_jugadores DESC,
+         g.nombre ASC`
+    )
+    .all();
+
+  return (rs.results || []).map((r, index) => {
+    const cantidadJugadores = Number(r.cantidad_jugadores || 0);
+    const totalPuntos = Number(r.total_puntos || 0);
+
+    return {
+      posicion: index + 1,
+      id_grupo: r.id_grupo,
+      grupo: r.grupo,
+      cantidad_jugadores: cantidadJugadores,
+      total_puntos: totalPuntos,
+      promedio_puntos:
+        cantidadJugadores === 0
+          ? 0
+          : Number((totalPuntos / cantidadJugadores).toFixed(2)),
+      total_predicciones: Number(r.total_predicciones || 0)
+    };
+  });
 }

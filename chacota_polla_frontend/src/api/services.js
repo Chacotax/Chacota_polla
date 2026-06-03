@@ -7,20 +7,38 @@ export const api = {
 
   mapaMundial: () => http.get("/api/mundial/mapa"),
   equipos: () => http.get("/api/equipos"),
+
   jugadores: (equipo) =>
       http.get(`/api/jugadores${equipo ? `?equipo=${equipo}` : ""}`),
+
   partidos: () => http.get("/api/partidos"),
 
+  // Para la vista de administración de resultados
+  partidosAdmin: () => http.get("/api/partidos"),
+
+  goleadoresResultado: (idPartido) =>
+      http.get(`/api/admin/resultados/goleadores?id_partido=${idPartido}`),
+
   grupos: () => http.get("/api/grupos"),
+
   misGrupos: (idUsuario) =>
       http.get(`/api/grupos/mis-grupos?usuario=${idUsuario}`),
+
   crearGrupo: (payload) => http.post("/api/grupos", payload),
+
   unirseGrupo: (payload) => http.post("/api/grupos/unirse", payload),
+
   actualizarCupo: (idGrupo, payload) =>
       http.put(`/api/grupos/${idGrupo}/cupo`, payload),
+
   ranking: (idGrupo) => http.get(`/api/grupos/${idGrupo}/ranking`),
 
+  rankingGeneralGrupos: () => http.get("/api/grupos/ranking-general"),
+
+  rankingGeneralEmpresa: () => http.get("/api/grupos/ranking-empresa"),
+
   guardarPrediccion: (payload) => http.post("/api/predicciones", payload),
+
 
   misPredicciones: (idUsuario, idGrupo = null) => {
     const params = new URLSearchParams();

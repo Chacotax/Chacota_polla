@@ -108,7 +108,7 @@ export default {
     if (method === "GET" && path === "/health") {
       return json({
         ok: true,
-        app: env.APP_NAME || "Chacota Polla Mundialista",
+        app: env.APP_NAME || "Polla UP Mundialista",
         status: "running",
         provider: env.API_PROVIDER || "apifootball",
         apiBaseUrl: env.APIFOOTBALL_BASE_URL || null

@@ -8,6 +8,7 @@ import PartidosPage from "./pages/PartidosPage";
 import GruposPage from "./pages/GruposPage";
 import RankingPage from "./pages/RankingPage";
 import AdminPage from "./pages/AdminPage";
+import AdminResultadosPage from "./pages/AdminResultadosPage";
 import "./styles/global.css";
 
 function AppContent() {
@@ -23,6 +24,7 @@ function AppContent() {
     if (page === "grupos") return <GruposPage />;
     if (page === "ranking") return <RankingPage />;
     if (page === "admin") return <AdminPage />;
+    if (page === "resultados") return <AdminResultadosPage />;
     return <DashboardPage onNavigate={setPage} />;
   };
 

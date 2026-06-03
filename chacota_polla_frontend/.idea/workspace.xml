@@ -7,7 +7,6 @@
     <list default="true" id="6c706aee-120e-42f6-b904-163e11868f02" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/../chacota_polla_backend/src/routes/predicciones.routes.js" beforeDir="false" afterPath="$PROJECT_DIR$/../chacota_polla_backend/src/routes/predicciones.routes.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../chacota_polla_backend/src/services/puntaje.service.js" beforeDir="false" afterPath="$PROJECT_DIR$/../chacota_polla_backend/src/services/puntaje.service.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/LoginPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/LoginPage.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,7 +48,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1779421625228</updated>
-      <workItem from="1779421627232" duration="6226000" />
+      <workItem from="1779421627232" duration="6481000" />
     </task>
     <servers />
   </component>
