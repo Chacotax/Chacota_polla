@@ -9,6 +9,8 @@ import GruposPage from "./pages/GruposPage";
 import RankingPage from "./pages/RankingPage";
 import AdminPage from "./pages/AdminPage";
 import AdminResultadosPage from "./pages/AdminResultadosPage";
+import ReglasPage from "./pages/ReglasPage";
+
 import "./styles/global.css";
 
 function AppContent() {
@@ -23,22 +25,24 @@ function AppContent() {
     if (page === "partidos") return <PartidosPage />;
     if (page === "grupos") return <GruposPage />;
     if (page === "ranking") return <RankingPage />;
+    if (page === "reglas") return <ReglasPage />;
     if (page === "admin") return <AdminPage />;
     if (page === "resultados") return <AdminResultadosPage />;
+
     return <DashboardPage onNavigate={setPage} />;
   };
 
   return (
-    <Layout active={page} onNavigate={setPage}>
-      {render()}
-    </Layout>
+      <Layout active={page} onNavigate={setPage}>
+        {render()}
+      </Layout>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
   );
 }

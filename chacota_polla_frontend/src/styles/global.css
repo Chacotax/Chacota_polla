@@ -3430,3 +3430,310 @@ th {
     text-align: left;
   }
 }
+
+
+/* =========================
+   REGLAS / BASES DEL JUEGO
+========================= */
+
+.rules-page {
+  padding: 28px 18px 46px;
+}
+
+.rules-header h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: #102a3b;
+}
+
+.rules-header p {
+  max-width: 760px;
+  color: #527083;
+}
+
+.rules-hero-card {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 24px;
+  border-radius: 28px;
+  border: 1px solid #bdefff;
+  background:
+          radial-gradient(circle at top left, rgba(38, 188, 228, 0.22), transparent 36%),
+          linear-gradient(135deg, #ffffff 0%, #e7faff 100%);
+  box-shadow: 0 18px 38px rgba(7, 151, 201, 0.12);
+}
+
+.rules-hero-icon {
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: linear-gradient(135deg, #26bce4 0%, #0797c9 100%);
+  box-shadow: 0 16px 32px rgba(38, 188, 228, 0.3);
+}
+
+.rules-hero-card span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.74rem;
+  font-weight: 900;
+  color: #0797c9;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rules-hero-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.45rem;
+  color: #102a3b;
+}
+
+.rules-hero-card p {
+  margin: 0;
+  color: #527083;
+  line-height: 1.65;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rule-card {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid #bdefff;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(7, 151, 201, 0.08);
+}
+
+.rule-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 17px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: #26bce4;
+}
+
+.rule-card span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #0797c9;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rule-card h3 {
+  margin: 0 0 8px;
+  color: #102a3b;
+  font-size: 1.08rem;
+}
+
+.rule-card p {
+  margin: 0;
+  color: #527083;
+  line-height: 1.6;
+}
+
+.rule-card strong {
+  color: #0797c9;
+  font-weight: 950;
+}
+
+.rule-card ul {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: #527083;
+}
+
+.rule-card li {
+  margin-bottom: 6px;
+  line-height: 1.45;
+}
+
+.rule-example {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #f4fcff;
+  border: 1px solid #d8f6ff;
+}
+
+.rule-example small {
+  display: block;
+  margin-bottom: 5px;
+  color: #0797c9;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.rule-example strong {
+  display: block;
+  color: #102a3b;
+  margin-bottom: 4px;
+}
+
+.rule-example p {
+  font-size: 0.9rem;
+}
+
+.rule-formula {
+  margin-top: 14px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  color: #102a3b;
+  background: #e7faff;
+  border: 1px dashed #26bce4;
+  font-weight: 850;
+}
+
+.rules-score-section {
+  padding: 22px;
+  margin-bottom: 24px;
+  border-radius: 26px;
+  border: 1px solid #bdefff;
+  background: #ffffff;
+  box-shadow: 0 18px 35px rgba(7, 151, 201, 0.08);
+}
+
+.rules-score-table {
+  display: grid;
+  gap: 10px;
+}
+
+.rules-score-row {
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f4fcff;
+  border: 1px solid #d8f6ff;
+}
+
+.rules-score-row.header {
+  background: #102a3b;
+  color: #ffffff;
+  border-color: #102a3b;
+  font-weight: 900;
+}
+
+.rules-score-row span {
+  color: inherit;
+  font-weight: 800;
+}
+
+.rules-score-row strong {
+  justify-self: end;
+  min-width: 52px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-align: center;
+  color: #ffffff;
+  background: #26bce4;
+  font-weight: 950;
+}
+
+.rules-score-row.header strong {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.rules-score-row.danger strong {
+  background: #ef4444;
+}
+
+.rules-warning-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%);
+  border: 1px solid #fed7aa;
+  color: #92400e;
+}
+
+.rules-warning-card svg {
+  flex: 0 0 auto;
+  color: #f97316;
+}
+
+.rules-warning-card h3 {
+  margin: 0 0 5px;
+  color: #7c2d12;
+}
+
+.rules-warning-card p {
+  margin: 0;
+  color: #92400e;
+  line-height: 1.55;
+}
+
+/* =========================
+   RESPONSIVE REGLAS
+========================= */
+
+@media (max-width: 900px) {
+  .rules-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-hero-card {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-hero-icon {
+    width: 68px;
+    height: 68px;
+  }
+}
+
+@media (max-width: 640px) {
+  .rules-page {
+    padding: 20px 12px 36px;
+  }
+
+  .rules-hero-card,
+  .rule-card,
+  .rules-score-section,
+  .rules-warning-card {
+    border-radius: 20px;
+  }
+
+  .rule-card {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  .rules-score-row {
+    grid-template-columns: 1fr;
+  }
+
+  .rules-score-row strong {
+    justify-self: start;
+  }
+
+  .rules-warning-card {
+    flex-direction: column;
+  }
+}

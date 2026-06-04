@@ -11,7 +11,8 @@ import {
   ClipboardCheck,
   MessageCircle,
   Menu,
-  X
+  X,
+  BookOpen
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -21,6 +22,7 @@ const nav = [
   { key: "partidos", label: "Partidos", icon: CalendarDays },
   { key: "grupos", label: "Mis grupos", icon: Users },
   { key: "ranking", label: "Ranking", icon: Trophy },
+  { key: "reglas", label: "Reglas", icon: BookOpen },
   { key: "resultados", label: "Resultados", icon: ClipboardCheck, admin: true },
   { key: "admin", label: "Admin", icon: Settings, admin: true }
 ];
@@ -74,7 +76,7 @@ export default function Layout({ active, onNavigate, children }) {
                 <Trophy size={22} />
               </div>
               <div>
-                <h1>Polla UP</h1>
+                <h1>La Polla UP</h1>
                 <p>Mundialista 2026</p>
               </div>
             </div>
@@ -94,7 +96,7 @@ export default function Layout({ active, onNavigate, children }) {
               <Trophy size={22} />
             </div>
             <div>
-              <h1>Polla UP</h1>
+              <h1>La Polla UP</h1>
               <p>Mundialista 2026</p>
             </div>
           </div>
