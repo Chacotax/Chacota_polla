@@ -35,7 +35,7 @@ function parseFechaPartidoPeru(fechaHora) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function partidoAunNoInicio(fechaHora, minutosBloqueo = 5) {
+function partidoAunNoInicio(fechaHora, minutosBloqueo = 60) {
   const fechaPartido = parseFechaPartidoPeru(fechaHora);
 
   if (!fechaPartido) return true;
@@ -49,11 +49,16 @@ function partidoAunNoInicio(fechaHora, minutosBloqueo = 5) {
 function puedeGuardarPrediccion(partido) {
   return (
     partidoPermitePrediccion(partido.estado_partido) &&
-    partidoAunNoInicio(partido.fecha_hora, 5)
+    partidoAunNoInicio(partido.fecha_hora, 60)
   );
 }
 
-function calcularEquipoGanadorPredicho(golesLocal, golesVisitante, idEquipoLocal, idEquipoVisitante) {
+function calcularEquipoGanadorPredicho(
+  golesLocal,
+  golesVisitante,
+  idEquipoLocal,
+  idEquipoVisitante
+) {
   const gl = Number(golesLocal);
   const gv = Number(golesVisitante);
 
@@ -98,6 +103,18 @@ function resultadoReal(partido) {
   if (Number.isNaN(gl) || Number.isNaN(gv)) return null;
   if (gl > gv) return Number(partido.id_equipo_local);
   if (gv > gl) return Number(partido.id_equipo_visitante);
+
+  return null;
+}
+
+function resultadoPredicho(prediccion, partido) {
+  const gl = Number(prediccion.goles_local_predicho);
+  const gv = Number(prediccion.goles_visitante_predicho);
+
+  if (Number.isNaN(gl) || Number.isNaN(gv)) return null;
+  if (gl > gv) return Number(partido.id_equipo_local);
+  if (gv > gl) return Number(partido.id_equipo_visitante);
+
   return null;
 }
 
@@ -419,21 +436,41 @@ export async function recalcularPartido(db, id_partido) {
     let total = 0;
     const detalles = [];
 
-    if (Number(pred.equipo_ganador_predicho) === Number(ganadorReal)) {
-      total += 1;
-      detalles.push(["RESULTADO", 1, "Acertó ganador o empate"]);
-    } else {
-      detalles.push(["RESULTADO", 0, "No acertó ganador o empate"]);
-    }
+    const predLocal = Number(pred.goles_local_predicho);
+    const predVisitante = Number(pred.goles_visitante_predicho);
+    const realLocal = Number(partido.goles_local);
+    const realVisitante = Number(partido.goles_visitante);
 
-    if (
-      Number(pred.goles_local_predicho) === Number(partido.goles_local) &&
-      Number(pred.goles_visitante_predicho) === Number(partido.goles_visitante)
-    ) {
-      total += 2;
-      detalles.push(["MARCADOR_EXACTO", 2, "Acertó el marcador exacto"]);
+    const marcadorExacto =
+      predLocal === realLocal &&
+      predVisitante === realVisitante;
+
+    const ganadorPredicho = resultadoPredicho(pred, partido);
+
+    const acertoResultado =
+      ganadorPredicho === ganadorReal ||
+      (ganadorPredicho === null && ganadorReal === null);
+
+    if (marcadorExacto) {
+      total += 5;
+      detalles.push([
+        "MARCADOR_EXACTO",
+        5,
+        `Acertó el score exacto: ${realLocal} - ${realVisitante}`
+      ]);
+    } else if (acertoResultado) {
+      total += 3;
+      detalles.push([
+        "RESULTADO",
+        3,
+        "Acertó el resultado del partido"
+      ]);
     } else {
-      detalles.push(["MARCADOR_EXACTO", 0, "No acertó el marcador exacto"]);
+      detalles.push([
+        "RESULTADO",
+        0,
+        "No acertó el resultado del partido"
+      ]);
     }
 
     const predGolsRs = await db
@@ -632,6 +669,7 @@ export async function rankingGeneralEmpresa(db) {
     grupos_participa: Number(r.grupos_participa || 0)
   }));
 }
+
 export async function listarGoleadoresPartido(db, id_partido) {
   if (!id_partido) {
     throw new Error("Debe enviar id_partido.");
@@ -678,6 +716,7 @@ export async function listarGoleadoresPartido(db, id_partido) {
     equipo: g.equipo || "Equipo"
   }));
 }
+
 export async function rankingGeneralGrupos(db) {
   const rs = await db
     .prepare(

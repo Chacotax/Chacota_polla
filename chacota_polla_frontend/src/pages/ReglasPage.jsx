@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Banknote,
   Ban,
   CheckCircle2,
   Clock,
@@ -20,7 +21,7 @@ export default function ReglasPage() {
             <h2>Reglas de La Polla UP</h2>
             <p>
               Conoce cómo se registran las predicciones, cómo se calculan los
-              puntos y cómo funcionan los rankings.
+              puntos, cuáles son los premios y cómo funcionan los rankings.
             </p>
           </div>
         </header>
@@ -52,13 +53,13 @@ export default function ReglasPage() {
               <h3>Resultado del partido</h3>
               <p>
                 Si aciertas el resultado general del partido, sumas{" "}
-                <strong>1 punto</strong>.
+                <strong>3 puntos</strong>.
               </p>
 
               <ul>
-                <li>Si predices que gana el local y gana el local: +1</li>
-                <li>Si predices que gana el visitante y gana el visitante: +1</li>
-                <li>Si predices empate y el partido termina empatado: +1</li>
+                <li>Si predices que gana el local y gana el local: +3</li>
+                <li>Si predices que gana el visitante y gana el visitante: +3</li>
+                <li>Si predices empate y el partido termina empatado: +3</li>
               </ul>
             </div>
           </article>
@@ -72,14 +73,14 @@ export default function ReglasPage() {
               <span>Regla 2</span>
               <h3>Marcador exacto</h3>
               <p>
-                Si aciertas el score completo, sumas{" "}
-                <strong>2 puntos adicionales</strong>.
+                Si aciertas el score completo del partido, sumas{" "}
+                <strong>5 puntos en total</strong>.
               </p>
 
               <div className="rule-example">
                 <small>Ejemplo</small>
                 <strong>Predicción: México 2 - 1 Sudáfrica</strong>
-                <p>Resultado real: México 2 - 1 Sudáfrica → +2 puntos</p>
+                <p>Resultado real: México 2 - 1 Sudáfrica → +5 puntos</p>
               </div>
             </div>
           </article>
@@ -121,7 +122,7 @@ export default function ReglasPage() {
               <ul>
                 <li>Antes del cierre puedes crear o editar tu predicción.</li>
                 <li>Después del cierre solo podrás verla.</li>
-
+                <li>El sistema bloqueará cualquier intento de modificación.</li>
               </ul>
             </div>
           </article>
@@ -200,6 +201,27 @@ export default function ReglasPage() {
               </p>
             </div>
           </article>
+
+          <article className="rule-card">
+            <div className="rule-icon">
+              <Banknote size={24} />
+            </div>
+
+            <div>
+              <span>Premios</span>
+              <h3>Premios finales</h3>
+              <p>
+                Al finalizar la competencia, se premiará a los tres primeros
+                lugares del ranking general de la empresa.
+              </p>
+
+              <ul>
+                <li>Primer puesto: S/ 300</li>
+                <li>Segundo puesto: S/ 200</li>
+                <li>Tercer puesto: S/ 100</li>
+              </ul>
+            </div>
+          </article>
         </section>
 
         <section className="rules-score-section">
@@ -216,12 +238,12 @@ export default function ReglasPage() {
 
             <div className="rules-score-row">
               <span>Acertar ganador o empate</span>
-              <strong>+1</strong>
+              <strong>+3</strong>
             </div>
 
             <div className="rules-score-row">
               <span>Acertar marcador exacto</span>
-              <strong>+2</strong>
+              <strong>+5</strong>
             </div>
 
             <div className="rules-score-row">
@@ -236,7 +258,47 @@ export default function ReglasPage() {
           </div>
         </section>
 
+        <section className="rules-score-section">
+          <div className="ranking-section-title">
+            <Banknote size={18} />
+            <span>Premios finales</span>
+          </div>
 
+          <div className="rules-score-table">
+            <div className="rules-score-row header">
+              <span>Puesto</span>
+              <span>Premio</span>
+            </div>
+
+            <div className="rules-score-row">
+              <span>Primer puesto</span>
+              <strong>S/ 300</strong>
+            </div>
+
+            <div className="rules-score-row">
+              <span>Segundo puesto</span>
+              <strong>S/ 200</strong>
+            </div>
+
+            <div className="rules-score-row">
+              <span>Tercer puesto</span>
+              <strong>S/ 100</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="rules-warning-card">
+          <Ban size={24} />
+
+          <div>
+            <h3>Importante</h3>
+            <p>
+              El marcador exacto vale 5 puntos en total. Si aciertas el marcador
+              exacto, no se suman adicionalmente los 3 puntos del resultado; se
+              considera directamente el puntaje mayor.
+            </p>
+          </div>
+        </section>
       </div>
   );
 }
