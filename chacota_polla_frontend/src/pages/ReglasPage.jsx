@@ -101,7 +101,7 @@ export default function ReglasPage() {
               <ul>
                 <li>Jugador seleccionado que mete gol: +1 punto</li>
                 <li>Jugador seleccionado que no mete gol: -1 punto</li>
-                <li>Máximo 3 jugadores por predicción</li>
+                <li>Máximo 3 jugadores por predicción - partido</li>
               </ul>
             </div>
           </article>
@@ -195,7 +195,7 @@ export default function ReglasPage() {
               <span>Regla 8</span>
               <h3>Registro oficial de resultados</h3>
               <p>
-                Solo administración registra el marcador final y los jugadores que
+                Solo el administrador del aplicativo registra el marcador final y los jugadores que
                 anotaron. Al guardar el resultado, el sistema recalcula los
                 puntajes automáticamente.
               </p>
