@@ -263,7 +263,7 @@ export default function RankingPage() {
                         {getDisplayName(item)}
                         {isMe && <em>Tú</em>}
                       </strong>
-                      <span>@{item.usuario}</span>
+                      {/*<span>@{item.usuario}</span>*/}
                     </div>
 
                     <div className="ranking-predictions-count">
