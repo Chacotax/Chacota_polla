@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   KeyRound,
-  RefreshCw,
-  Save,
+  Search,
   ShieldCheck,
   UserRound,
   X
@@ -11,17 +10,9 @@ import { api } from "../api/services";
 import Alert from "../components/Alert";
 
 export default function AdminPage() {
-  const [logs, setLogs] = useState([]);
-  const [equipos, setEquipos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
 
-  const [equipo, setEquipo] = useState({
-    nombre: "",
-    nombre_corto: "",
-    codigo_fifa: "",
-    id_grupo_mundial: 1
-  });
-
+  const [busquedaUsuario, setBusquedaUsuario] = useState("");
   const [usuarioReset, setUsuarioReset] = useState(null);
   const [passwordReset, setPasswordReset] = useState("");
   const [passwordResetConfirmar, setPasswordResetConfirmar] = useState("");
@@ -31,8 +22,6 @@ export default function AdminPage() {
   const [error, setError] = useState("");
 
   const load = async () => {
-    setLogs(await api.syncLogs().catch(() => []));
-    setEquipos(await api.equipos().catch(() => []));
     setUsuarios(await api.usuarios().catch(() => []));
   };
 
@@ -45,20 +34,29 @@ export default function AdminPage() {
     setError("");
   };
 
-  const sync = async (tipo) => {
-    limpiarMensajes();
+  const usuariosFiltrados = useMemo(() => {
+    const term = busquedaUsuario.trim().toLowerCase();
 
-    try {
-      if (tipo === "equipos") await api.syncEquipos();
-      if (tipo === "partidos") await api.syncPartidos();
-      if (tipo === "jugadores") await api.syncJugadores();
+    if (!term) return usuarios.slice(0, 15);
 
-      setMessage(`Sync ${tipo} ejecutado correctamente.`);
-      await load();
-    } catch (err) {
-      setError(err.message || `No se pudo ejecutar sync de ${tipo}.`);
-    }
-  };
+    return usuarios
+        .filter((u) => {
+          const texto = [
+            u.usuario,
+            u.nombres,
+            u.apellidos,
+            u.email,
+            u.rol,
+            u.dni
+          ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+
+          return texto.includes(term);
+        })
+        .slice(0, 30);
+  }, [usuarios, busquedaUsuario]);
 
   const abrirModalResetPassword = (usuario) => {
     limpiarMensajes();
@@ -110,44 +108,6 @@ export default function AdminPage() {
     }
   };
 
-  const crearEquipo = async (e) => {
-    e.preventDefault();
-    limpiarMensajes();
-
-    try {
-      await apiEquiposPost(equipo);
-
-      setMessage("Equipo registrado manualmente.");
-      setEquipo({
-        nombre: "",
-        nombre_corto: "",
-        codigo_fifa: "",
-        id_grupo_mundial: 1
-      });
-
-      await load();
-    } catch (err) {
-      setError(err.message || "No se pudo registrar el equipo.");
-    }
-  };
-
-  const apiEquiposPost = async (payload) => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/equipos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...payload,
-        id_grupo_mundial: Number(payload.id_grupo_mundial)
-      })
-    });
-
-    const data = await res.json();
-
-    if (!data.ok) throw new Error(data.message);
-
-    return data.data;
-  };
-
   const nombreCompleto = (usuario) => {
     const nombre = [usuario?.nombres, usuario?.apellidos]
         .filter(Boolean)
@@ -163,60 +123,69 @@ export default function AdminPage() {
           <div>
             <span className="eyebrow">Administración</span>
             <h2>Panel de control</h2>
-            <p>
-              Sincroniza información, carga equipos manuales y administra accesos
-              de usuarios.
-            </p>
+            <p>Administra usuarios y resetea contraseñas cuando sea necesario.</p>
           </div>
         </header>
 
         {message && <Alert type="success">{message}</Alert>}
         {error && <Alert type="danger">{error}</Alert>}
 
+        <section className="panel">
+          <div className="panel-title">
+            <h3>Usuarios registrados</h3>
+          </div>
 
+          <div className="admin-search-box">
+            <Search size={18} />
+            <input
+                type="text"
+                value={busquedaUsuario}
+                onChange={(e) => setBusquedaUsuario(e.target.value)}
+                placeholder="Buscar por usuario, nombre, apellido, DNI o rol..."
+            />
+          </div>
 
-        <div className="two-columns">
+          <div className="admin-users-summary">
+          <span>
+            Mostrando <strong>{usuariosFiltrados.length}</strong> de{" "}
+            <strong>{usuarios.length}</strong> usuarios
+          </span>
 
-          <section className="panel">
-            <div className="panel-title">
-              <h3>Usuarios registrados</h3>
-            </div>
+            {!busquedaUsuario && usuarios.length > 15 && (
+                <small>Escribe en el buscador para encontrar más usuarios.</small>
+            )}
+          </div>
 
-            <div className="admin-users-list">
-              {usuarios.length === 0 && (
-                  <div className="admin-empty">
-                    No hay usuarios registrados.
+          <div className="admin-users-list compact">
+            {usuariosFiltrados.length === 0 && (
+                <div className="admin-empty">No se encontraron usuarios.</div>
+            )}
+
+            {usuariosFiltrados.map((usuario) => (
+                <div className="admin-user-row" key={usuario.id_usuario}>
+                  <div className="admin-user-avatar">
+                    <UserRound size={18} />
                   </div>
-              )}
 
-              {usuarios.map((usuario) => (
-                  <div className="admin-user-row" key={usuario.id_usuario}>
-                    <div className="admin-user-avatar">
-                      <UserRound size={18} />
-                    </div>
-
-                    <div className="admin-user-info">
-                      <strong>{nombreCompleto(usuario)}</strong>
-                      <small>
-                        {usuario.usuario} · {usuario.rol || "USER"}
-                      </small>
-                    </div>
-
-                    <button
-                        type="button"
-                        className="btn small"
-                        onClick={() => abrirModalResetPassword(usuario)}
-                    >
-                      <KeyRound size={15} />
-                      Resetear
-                    </button>
+                  <div className="admin-user-info">
+                    <strong>{nombreCompleto(usuario)}</strong>
+                    <small>
+                      {usuario.usuario} · {usuario.rol || "USER"}
+                    </small>
                   </div>
-              ))}
-            </div>
-          </section>
-        </div>
 
-
+                  <button
+                      type="button"
+                      className="btn small"
+                      onClick={() => abrirModalResetPassword(usuario)}
+                  >
+                    <KeyRound size={15} />
+                    Resetear
+                  </button>
+                </div>
+            ))}
+          </div>
+        </section>
 
         {usuarioReset && (
             <div className="modal-backdrop">

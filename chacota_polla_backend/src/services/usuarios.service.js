@@ -1,6 +1,27 @@
 import { first, run } from "../utils/sql.js";
 import { createPassword, verifyPassword } from "../utils/security.js";
 
+function obtenerPasswordHashSalt(passwordGenerada) {
+  const passwordHash =
+    passwordGenerada?.password_hash ??
+    passwordGenerada?.hash ??
+    passwordGenerada?.passwordHash;
+
+  const passwordSalt =
+    passwordGenerada?.password_salt ??
+    passwordGenerada?.salt ??
+    passwordGenerada?.passwordSalt;
+
+  if (!passwordHash || !passwordSalt) {
+    throw new Error("No se pudo generar la nueva contraseña.");
+  }
+
+  return {
+    passwordHash,
+    passwordSalt
+  };
+}
+
 export async function actualizarPerfilUsuario(db, payload) {
   const { id_usuario, usuario } = payload;
 
@@ -80,6 +101,7 @@ export async function cambiarPasswordUsuario(db, payload) {
   }
 
   const nuevaPassword = await createPassword(password_nuevo);
+  const { passwordHash, passwordSalt } = obtenerPasswordHashSalt(nuevaPassword);
 
   await run(
     db,
@@ -87,11 +109,7 @@ export async function cambiarPasswordUsuario(db, payload) {
      SET password_hash = ?,
          password_salt = ?
      WHERE id_usuario = ?`,
-    [
-      nuevaPassword.password_hash,
-      nuevaPassword.password_salt,
-      id_usuario
-    ]
+    [passwordHash, passwordSalt, id_usuario]
   );
 
   return {
@@ -125,6 +143,7 @@ export async function resetearPasswordUsuario(db, payload) {
   }
 
   const nuevaPassword = await createPassword(password_nuevo);
+  const { passwordHash, passwordSalt } = obtenerPasswordHashSalt(nuevaPassword);
 
   await run(
     db,
@@ -132,11 +151,7 @@ export async function resetearPasswordUsuario(db, payload) {
      SET password_hash = ?,
          password_salt = ?
      WHERE id_usuario = ?`,
-    [
-      nuevaPassword.password_hash,
-      nuevaPassword.password_salt,
-      id_usuario
-    ]
+    [passwordHash, passwordSalt, id_usuario]
   );
 
   return {

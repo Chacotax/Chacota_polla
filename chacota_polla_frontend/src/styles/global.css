@@ -3958,3 +3958,49 @@ th {
     flex-direction: column;
   }
 }
+
+.admin-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #cceefa;
+  background: #f8fdff;
+  color: #527083;
+}
+
+.admin-search-box input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: #102a3b;
+  font-weight: 700;
+}
+
+.admin-search-box input::placeholder {
+  color: #8aa3b4;
+}
+
+.admin-users-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: #527083;
+  font-weight: 700;
+}
+
+.admin-users-summary small {
+  color: #0797c9;
+  font-weight: 800;
+}
+
+.admin-users-list.compact {
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 4px;
+}

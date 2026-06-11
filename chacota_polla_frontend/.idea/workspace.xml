@@ -5,17 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6c706aee-120e-42f6-b904-163e11868f02" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/../chacota_polla_backend/src/routes/usuarios.routes.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../chacota_polla_backend/src/services/usuarios.service.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/pages/PerfilPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../chacota_polla_backend/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../chacota_polla_backend/src/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../chacota_polla_backend/src/services/puntaje.service.js" beforeDir="false" afterPath="$PROJECT_DIR$/../chacota_polla_backend/src/services/puntaje.service.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/services.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/services.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/Layout.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Layout.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/AdminPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/AdminPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/LoginPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/LoginPage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/styles/global.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/styles/global.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -59,7 +50,7 @@
       <option name="presentableId" value="Default" />
       <updated>1779421625228</updated>
       <workItem from="1779421627232" duration="6481000" />
-      <workItem from="1780375045654" duration="5128000" />
+      <workItem from="1780375045654" duration="5633000" />
     </task>
     <servers />
   </component>
