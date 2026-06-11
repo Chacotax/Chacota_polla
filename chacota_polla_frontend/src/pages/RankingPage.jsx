@@ -380,7 +380,7 @@ export default function RankingPage() {
                         <div className="podium-avatar">{getInitials(item)}</div>
 
                         <strong>{getDisplayName(item)}</strong>
-                        <small>@{item.usuario}</small>
+                        {/*<small>@{item.usuario}</small>*/}
 
                         <div className="podium-points">
                           {Number(item.puntos || 0)}
@@ -449,7 +449,7 @@ export default function RankingPage() {
                               {getDisplayName(item)}
                               {isMe && <em>Tú</em>}
                             </strong>
-                            <span>@{item.usuario}</span>
+                            {/*<span>@{item.usuario}</span>*/}
                           </div>
 
                           <div className="ranking-predictions-count">
