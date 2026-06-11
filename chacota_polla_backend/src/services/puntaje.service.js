@@ -634,23 +634,39 @@ export async function rankingGeneralEmpresa(db) {
           u.usuario,
           u.nombres,
           u.apellidos,
-          COALESCE(SUM(p.total_puntos), 0) AS puntos,
-          COUNT(DISTINCT p.id_partido) AS partidos_puntuados,
-          COUNT(DISTINCT pr.id_prediccion) AS predicciones,
-          COUNT(DISTINCT gp.id_grupo) AS grupos_participa
+          COALESCE(puntos.total_puntos, 0) AS puntos,
+          COALESCE(puntos.partidos_puntuados, 0) AS partidos_puntuados,
+          COALESCE(preds.predicciones, 0) AS predicciones,
+          COALESCE(grupos.grupos_participa, 0) AS grupos_participa
        FROM usuarios u
-       INNER JOIN grupo_participantes gp
-               ON gp.id_usuario = u.id_usuario
-              AND gp.estado = 1
-       LEFT JOIN puntajes p
-              ON p.id_usuario = u.id_usuario
-             AND p.id_grupo = gp.id_grupo
-       LEFT JOIN predicciones pr
-              ON pr.id_usuario = u.id_usuario
-             AND pr.id_grupo = gp.id_grupo
-             AND pr.estado = 1
+       INNER JOIN (
+          SELECT
+              id_usuario,
+              COUNT(DISTINCT id_grupo) AS grupos_participa
+          FROM grupo_participantes
+          WHERE estado = 1
+          GROUP BY id_usuario
+       ) grupos
+          ON grupos.id_usuario = u.id_usuario
+       LEFT JOIN (
+          SELECT
+              id_usuario,
+              SUM(total_puntos) AS total_puntos,
+              COUNT(DISTINCT id_partido) AS partidos_puntuados
+          FROM puntajes
+          GROUP BY id_usuario
+       ) puntos
+          ON puntos.id_usuario = u.id_usuario
+       LEFT JOIN (
+          SELECT
+              id_usuario,
+              COUNT(DISTINCT id_prediccion) AS predicciones
+          FROM predicciones
+          WHERE estado = 1
+          GROUP BY id_usuario
+       ) preds
+          ON preds.id_usuario = u.id_usuario
        WHERE u.estado = 1
-       GROUP BY u.id_usuario
        ORDER BY puntos DESC,
                 predicciones DESC,
                 u.usuario ASC`

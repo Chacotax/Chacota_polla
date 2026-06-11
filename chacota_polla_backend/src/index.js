@@ -5,6 +5,7 @@ import { gruposRoutes } from "./routes/grupos.routes.js";
 import { mundialRoutes } from "./routes/mundial.routes.js";
 import { prediccionesRoutes } from "./routes/predicciones.routes.js";
 import { json, notFound } from "./utils/response.js";
+import { usuariosRoutes } from "./routes/usuarios.routes.js";
 
 function normalizeApiFootballList(data) {
   if (Array.isArray(data)) return data;
@@ -396,7 +397,8 @@ export default {
       catalogosRoutes,
       gruposRoutes,
       prediccionesRoutes,
-      adminRoutes
+      adminRoutes,
+        usuariosRoutes
     ];
 
     for (const handler of handlers) {
