@@ -10,6 +10,7 @@ import RankingPage from "./pages/RankingPage";
 import AdminPage from "./pages/AdminPage";
 import AdminResultadosPage from "./pages/AdminResultadosPage";
 import ReglasPage from "./pages/ReglasPage";
+import PerfilPage from "./pages/PerfilPage";
 
 import "./styles/global.css";
 
@@ -28,6 +29,7 @@ function AppContent() {
     if (page === "reglas") return <ReglasPage />;
     if (page === "admin") return <AdminPage />;
     if (page === "resultados") return <AdminResultadosPage />;
+    if (page === "perfil") return <PerfilPage />;
 
     return <DashboardPage onNavigate={setPage} />;
   };

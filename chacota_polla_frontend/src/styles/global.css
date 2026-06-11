@@ -3737,3 +3737,224 @@ th {
     flex-direction: column;
   }
 }
+/* =========================
+   PERFIL
+========================= */
+
+.profile-page {
+  padding: 28px 18px 46px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.profile-card {
+  padding: 24px;
+  border-radius: 26px;
+  background: #ffffff;
+  border: 1px solid #bdefff;
+  box-shadow: 0 18px 35px rgba(7, 151, 201, 0.08);
+}
+
+.profile-card-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.profile-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: linear-gradient(135deg, #26bce4 0%, #0797c9 100%);
+  box-shadow: 0 12px 25px rgba(38, 188, 228, 0.25);
+}
+
+.profile-card h3 {
+  margin: 0 0 5px;
+  color: #102a3b;
+}
+
+.profile-card p {
+  margin: 0;
+  color: #527083;
+  line-height: 1.5;
+}
+
+.form-label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 15px;
+  color: #102a3b;
+  font-weight: 800;
+}
+
+.form-label input {
+  width: 100%;
+  border: 1px solid #cceefa;
+  border-radius: 14px;
+  padding: 12px 14px;
+  outline: none;
+  font: inherit;
+  color: #102a3b;
+  background: #f8fdff;
+}
+
+.form-label input:focus {
+  border-color: #26bce4;
+  box-shadow: 0 0 0 4px rgba(38, 188, 228, 0.14);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 14px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #26bce4 0%, #0797c9 100%);
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(7, 151, 201, 0.2);
+}
+
+.btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   ADMIN USUARIOS / RESET PASSWORD
+========================= */
+
+.admin-users-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-user-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid #d8f6ff;
+  background: #f8fdff;
+}
+
+.admin-user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: linear-gradient(135deg, #26bce4 0%, #0797c9 100%);
+}
+
+.admin-user-info {
+  min-width: 0;
+}
+
+.admin-user-info strong {
+  display: block;
+  color: #102a3b;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-user-info small {
+  display: block;
+  margin-top: 3px;
+  color: #527083;
+  font-weight: 700;
+}
+
+.admin-empty {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px dashed #bdefff;
+  background: #f4fcff;
+  color: #527083;
+  font-weight: 800;
+}
+
+.btn.small {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+}
+
+.admin-password-modal {
+  max-width: 460px;
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.modal-head h3 {
+  margin: 4px 0 0;
+}
+
+.logs-list {
+  display: grid;
+  gap: 10px;
+}
+
+.log-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f8fdff;
+  border: 1px solid #d8f6ff;
+}
+
+.log-row strong {
+  color: #102a3b;
+}
+
+.log-row span {
+  color: #527083;
+}
+
+@media (max-width: 640px) {
+  .admin-user-row {
+    grid-template-columns: 42px 1fr;
+  }
+
+  .admin-user-row .btn.small {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .log-row {
+    flex-direction: column;
+  }
+}

@@ -65,7 +65,7 @@ export default function LoginPage() {
       <section className="login-card">
         <div className="tabs">
           <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Ingresar</button>
-          <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Registrarme</button>
+
         </div>
 
         <Alert type="danger">{error}</Alert>

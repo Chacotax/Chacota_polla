@@ -5,6 +5,16 @@ export const api = {
   registrarUsuario: (payload) => http.post("/api/usuarios", payload),
   usuarios: () => http.get("/api/usuarios"),
 
+  // PERFIL / CONTRASEÑA
+  actualizarPerfil: (payload) =>
+      http.put("/api/usuarios/perfil", payload),
+
+  cambiarPassword: (payload) =>
+      http.put("/api/usuarios/cambiar-password", payload),
+
+  resetearPasswordUsuario: (payload) =>
+      http.put("/api/admin/usuarios/reset-password", payload),
+
   mapaMundial: () => http.get("/api/mundial/mapa"),
   equipos: () => http.get("/api/equipos"),
 
@@ -38,7 +48,6 @@ export const api = {
   rankingGeneralEmpresa: () => http.get("/api/grupos/ranking-empresa"),
 
   guardarPrediccion: (payload) => http.post("/api/predicciones", payload),
-
 
   misPredicciones: (idUsuario, idGrupo = null) => {
     const params = new URLSearchParams();

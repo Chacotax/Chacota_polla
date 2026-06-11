@@ -12,7 +12,8 @@ import {
   MessageCircle,
   Menu,
   X,
-  BookOpen
+  BookOpen,
+  UserRound
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -23,6 +24,7 @@ const nav = [
   { key: "grupos", label: "Mis grupos", icon: Users },
   { key: "ranking", label: "Ranking", icon: Trophy },
   { key: "reglas", label: "Reglas", icon: BookOpen },
+  { key: "perfil", label: "Mi perfil", icon: UserRound },
   { key: "resultados", label: "Resultados", icon: ClipboardCheck, admin: true },
   { key: "admin", label: "Admin", icon: Settings, admin: true }
 ];
