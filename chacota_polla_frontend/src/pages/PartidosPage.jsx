@@ -6,8 +6,11 @@ import {
   Lock,
   Shirt,
   Trophy,
-  UserRound
+  UserRound,
+  Download
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { api } from "../api/services";
 import { useAuth } from "../context/AuthContext";
 import Alert from "../components/Alert";
@@ -297,6 +300,34 @@ export default function PartidosPage() {
     partidoSeleccionado
   ]);
 
+  const cargarPrediccionesGlobales = async (idPartido) => {
+    if (!idPartido) return;
+    setLoadingPredicciones(true);
+    try {
+      // Intentamos cargar de todos los grupos del usuario
+      const promesas = grupos.map(g => api.prediccionesPartido(idPartido, g.id_grupo));
+      const resultados = await Promise.all(promesas);
+      
+      // Aplanamos y quitamos duplicados por id_usuario
+      const todas = resultados.flat();
+      const unicas = [];
+      const mapa = new Map();
+      
+      for (const p of todas) {
+        if (!mapa.has(p.id_usuario)) {
+          mapa.set(p.id_usuario, true);
+          unicas.push(p);
+        }
+      }
+      
+      setPrediccionesGrupo(unicas);
+    } catch (err) {
+      console.error("Error al cargar predicciones globales:", err);
+    } finally {
+      setLoadingPredicciones(false);
+    }
+  };
+
   const selectMatch = (p) => {
     const prediccionGuardada = getPrediccionPartido(
       p.id_partido,
@@ -316,10 +347,10 @@ export default function PartidosPage() {
     setMessage("");
     setError("");
 
-    // Si el partido está cerrado y hay un grupo seleccionado, cargamos apuestas de otros
+    // Si el partido está cerrado, cargamos apuestas de todos los grupos
     const abierto = partidoPermitePrediccion(p);
-    if (!abierto && form.id_grupo) {
-      cargarPrediccionesGrupo(p.id_partido, form.id_grupo);
+    if (!abierto) {
+      cargarPrediccionesGlobales(p.id_partido);
     }
   };
 
@@ -453,8 +484,45 @@ export default function PartidosPage() {
     );
   };
 
+  const handleDownloadPDF = () => {
+    if (!partidoSeleccionado || prediccionesGrupo.length === 0) return;
+
+    const doc = new jsPDF();
+    const title = `Apuestas: ${partidoSeleccionado.equipo_local} vs ${partidoSeleccionado.equipo_visitante}`;
+    const dateStr = formatMatchDate(partidoSeleccionado.fecha_hora);
+    const groupName = grupos.find(g => Number(g.id_grupo) === Number(form.id_grupo))?.nombre || "General";
+
+    doc.setFontSize(16);
+    doc.text(title, 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Fecha: ${dateStr}`, 14, 30);
+    doc.text(`Grupo: ${groupName}`, 14, 37);
+
+    const tableData = prediccionesGrupo.map(p => [
+      `${p.nombres} ${p.apellidos}`,
+      `@${p.usuario}`,
+      `${p.goles_local_predicho} - ${p.goles_visitante_predicho}`
+    ]);
+
+    autoTable(doc, {
+      startY: 45,
+      head: [["Nombre", "Usuario", "Predicción"]],
+      body: tableData,
+    });
+
+    doc.save(`apuestas_${partidoSeleccionado.equipo_local}_vs_${partidoSeleccionado.equipo_visitante}.pdf`);
+  };
+
   const renderPredictionPanel = (mobile = false) => {
     if (!partidoSeleccionado) return null;
+
+    // Si es móvil y NO es el renderizado móvil explícito, retornamos null
+    // para evitar duplicidad de tarjetas una debajo de otra.
+    const isMobileViewport = window.innerWidth <= 768;
+    if (isMobileViewport && !mobile) return null;
+    if (!isMobileViewport && mobile) return null;
+
+    const showOthers = !prediccionAbierta;
 
     return (
       <div className={`prediction-container-flex ${mobile ? "mobile-v" : "desktop-v"}`}>
@@ -615,15 +683,26 @@ export default function PartidosPage() {
           </form>
         </section>
 
-        {!prediccionAbierta && form.id_grupo && (
+        {showOthers && (
           <section className="panel others-predictions-panel">
-            <div className="panel-title">
-              <h3>Apuestas del grupo</h3>
+            <div className="panel-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Apuestas generales</h3>
+              {prediccionesGrupo.length > 0 && (
+                <button 
+                  className="btn btn-icon-only" 
+                  onClick={handleDownloadPDF}
+                  title="Descargar PDF"
+                  type="button"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', padding: '4px' }}
+                >
+                  <Download size={20} />
+                </button>
+              )}
             </div>
             {loadingPredicciones ? (
               <Loading />
             ) : prediccionesGrupo.length === 0 ? (
-              <p className="empty-state">No hay más apuestas en este grupo.</p>
+              <p className="empty-state">No hay más apuestas registradas.</p>
             ) : (
               <div className="others-predictions-list">
                 {prediccionesGrupo
@@ -738,6 +817,7 @@ export default function PartidosPage() {
                     {prediccionGuardada && renderSavedPredictionCard(prediccionGuardada, p)}
                   </button>
 
+                  {/* Renderizado móvil: aparece justo debajo del partido seleccionado */}
                   {selected && renderPredictionPanel(true)}
                 </div>
               );
@@ -745,7 +825,10 @@ export default function PartidosPage() {
           </div>
         </section>
 
-        {partidoSeleccionado && renderPredictionPanel(false)}
+        {/* Renderizado desktop: panel lateral */}
+        <section className="prediction-panel-desktop-wrapper">
+          {partidoSeleccionado && renderPredictionPanel(false)}
+        </section>
       </div>
     </div>
   );
