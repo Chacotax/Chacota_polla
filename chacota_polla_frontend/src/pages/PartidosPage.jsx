@@ -501,7 +501,7 @@ export default function PartidosPage() {
     const abierto = partidoPermitePrediccion(partidoSeleccionado);
     const mensajeEstado = abierto 
       ? "Nota: Los resultados pueden tener cambios debido a que el partido aun no esta cerrado."
-      : "Nota: Resultados ya ingresados. El partido ya esta iniciado/cerrado, no deberian tener cambios.";
+      : "Nota: Resultados ya ingresados. El partido ya esta iniciado/cerrado";
     
     doc.setFontSize(9);
     doc.setTextColor(abierto ? 100 : 0); // Gris si está abierto, negro si está cerrado
