@@ -304,8 +304,12 @@ export default function PartidosPage() {
     if (!idPartido) return;
     setLoadingPredicciones(true);
     try {
-      // Intentamos cargar de todos los grupos del usuario
-      const promesas = grupos.map(g => api.prediccionesPartido(idPartido, g.id_grupo));
+      // Obtenemos todos los grupos del sistema para ver todas las apuestas
+      const todosLosGrupos = await api.grupos();
+      const gruposArray = Array.isArray(todosLosGrupos) ? todosLosGrupos : [];
+      
+      // Intentamos cargar de todos los grupos del sistema
+      const promesas = gruposArray.map(g => api.prediccionesPartido(idPartido, g.id_grupo));
       const resultados = await Promise.all(promesas);
       
       // Aplanamos y quitamos duplicados por id_usuario
@@ -314,7 +318,7 @@ export default function PartidosPage() {
       const mapa = new Map();
       
       for (const p of todas) {
-        if (!mapa.has(p.id_usuario)) {
+        if (p && !mapa.has(p.id_usuario)) {
           mapa.set(p.id_usuario, true);
           unicas.push(p);
         }
@@ -490,23 +494,21 @@ export default function PartidosPage() {
     const doc = new jsPDF();
     const title = `Apuestas: ${partidoSeleccionado.equipo_local} vs ${partidoSeleccionado.equipo_visitante}`;
     const dateStr = formatMatchDate(partidoSeleccionado.fecha_hora);
-    const groupName = grupos.find(g => Number(g.id_grupo) === Number(form.id_grupo))?.nombre || "General";
 
     doc.setFontSize(16);
     doc.text(title, 14, 20);
     doc.setFontSize(11);
     doc.text(`Fecha: ${dateStr}`, 14, 30);
-    doc.text(`Grupo: ${groupName}`, 14, 37);
+    doc.text(`Reporte: Todas las apuestas del sistema`, 14, 37);
 
     const tableData = prediccionesGrupo.map(p => [
       `${p.nombres} ${p.apellidos}`,
-      `@${p.usuario}`,
       `${p.goles_local_predicho} - ${p.goles_visitante_predicho}`
     ]);
 
     autoTable(doc, {
       startY: 45,
-      head: [["Nombre", "Usuario", "Predicción"]],
+      head: [["Nombre", "Predicción"]],
       body: tableData,
     });
 
