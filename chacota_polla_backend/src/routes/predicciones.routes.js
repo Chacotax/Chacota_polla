@@ -3,13 +3,24 @@ import {
   guardarPrediccion,
   listarGoleadoresPartido,
   listarMisPredicciones,
+  listarPrediccionesPartido,
   registrarResultado
 } from "../services/puntaje.service.js";
 
 export async function prediccionesRoutes(request, env, path, method) {
   try {
+    const url = new URL(request.url);
+
+    if (method === "GET" && path === "/api/predicciones/partido") {
+      const id_partido = url.searchParams.get("partido");
+      const id_grupo = url.searchParams.get("grupo");
+      return ok(
+        await listarPrediccionesPartido(env.DB, id_partido, id_grupo),
+        "Predicciones del partido obtenidas"
+      );
+    }
+
     if (method === "GET" && path === "/api/predicciones/mis") {
-      const url = new URL(request.url);
 
       const id_usuario = url.searchParams.get("id_usuario");
       const id_grupo = url.searchParams.get("id_grupo");

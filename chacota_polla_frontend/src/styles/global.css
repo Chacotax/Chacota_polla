@@ -4004,3 +4004,75 @@ th {
   overflow-y: auto;
   padding-right: 4px;
 }
+/* PREDICTION PANELS FLEX */
+.prediction-container-flex {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.prediction-container-flex.desktop-v {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.prediction-container-flex.mobile-v {
+  flex-direction: column;
+}
+
+.prediction-container-flex > section {
+  flex: 1;
+}
+
+.others-predictions-panel {
+  background: white;
+  min-width: 300px;
+}
+
+.others-predictions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.other-prediction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.other-prediction-item .user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.other-prediction-item .user-info strong {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.other-prediction-item .user-info small {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.other-prediction-item .score-pill {
+  background: #007bff;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.empty-state {
+  text-align: center;
+  color: #999;
+  padding: 2rem;
+  font-style: italic;
+}

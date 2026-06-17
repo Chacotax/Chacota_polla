@@ -175,6 +175,8 @@ export default function PartidosPage() {
   const [grupos, setGrupos] = useState([]);
   const [jugadores, setJugadores] = useState([]);
   const [predicciones, setPredicciones] = useState([]);
+  const [prediccionesGrupo, setPrediccionesGrupo] = useState([]);
+  const [loadingPredicciones, setLoadingPredicciones] = useState(false);
 
   const [form, setForm] = useState({
     id_grupo: "",
@@ -310,8 +312,30 @@ export default function PartidosPage() {
       goleadores: normalizarGoleadores(prediccionGuardada?.goleadores)
     }));
 
+    setPrediccionesGrupo([]);
     setMessage("");
     setError("");
+
+    // Si el partido está cerrado y hay un grupo seleccionado, cargamos apuestas de otros
+    const abierto = partidoPermitePrediccion(p);
+    if (!abierto && form.id_grupo) {
+      cargarPrediccionesGrupo(p.id_partido, form.id_grupo);
+    }
+  };
+
+  const cargarPrediccionesGrupo = async (idPartido, idGrupo) => {
+    if (!idPartido || !idGrupo) return;
+
+    setLoadingPredicciones(true);
+    try {
+      const data = await api.prediccionesPartido(idPartido, idGrupo);
+      setPrediccionesGrupo(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error al cargar predicciones del grupo:", err);
+      setPrediccionesGrupo([]);
+    } finally {
+      setLoadingPredicciones(false);
+    }
   };
 
   const toggleScorer = (idJugador) => {
@@ -433,157 +457,195 @@ export default function PartidosPage() {
     if (!partidoSeleccionado) return null;
 
     return (
-      <section
-        className={`panel prediction-panel ${
-          mobile ? "mobile-inline-prediction" : "desktop-prediction-panel"
-        }`}
-      >
-        <div className="panel-title">
-          <h3>Mi predicción</h3>
-          {!prediccionAbierta && (
-            <span className="prediction-closed-badge">
-              <Lock size={14} /> Predicción cerrada
-            </span>
-          )}
-        </div>
-
-        <form className="form prediction-form" onSubmit={submit}>
-          <div className="prediction-form-grid prediction-form-grid-single">
-            <div>
-              <label>Grupo de polla</label>
-              <select
-                value={form.id_grupo}
-                onChange={(e) => {
-                  const nuevoGrupo = e.target.value;
-                  const prediccionGuardada = form.id_partido
-                    ? getPrediccionPartido(form.id_partido, nuevoGrupo)
-                    : null;
-
-                  setForm({
-                    ...form,
-                    id_grupo: nuevoGrupo,
-                    goles_local_predicho:
-                      prediccionGuardada?.goles_local_predicho ?? 0,
-                    goles_visitante_predicho:
-                      prediccionGuardada?.goles_visitante_predicho ?? 0,
-                    goleadores: normalizarGoleadores(
-                      prediccionGuardada?.goleadores
-                    )
-                  });
-                }}
-              >
-                <option value="">Seleccione</option>
-                {grupos.map((g) => (
-                  <option key={g.id_grupo} value={g.id_grupo}>
-                    {g.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="prediction-summary-card">
-              <span>Resultado calculado</span>
-              <strong>{resultadoCalculado.label}</strong>
-              <small>Se interpreta automáticamente según el marcador.</small>
-            </div>
-          </div>
-
-          <div className="prediction-score-grid pro-score-grid">
-            <div className="score-team-card">
-              <div className="score-team-head no-flag">
-                <div>
-                  <strong>{partidoSeleccionado.equipo_local || "Local"}</strong>
-                  <small>Local</small>
-                </div>
-              </div>
-
-              <input
-                type="number"
-                min="0"
-                value={form.goles_local_predicho}
-                disabled={!prediccionAbierta}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    goles_local_predicho: e.target.value
-                  })
-                }
-                aria-label={`Goles de ${partidoSeleccionado.equipo_local || "local"}`}
-              />
-            </div>
-
-            <div className="score-team-card">
-              <div className="score-team-head no-flag">
-                <div>
-                  <strong>
-                    {partidoSeleccionado.equipo_visitante || "Visitante"}
-                  </strong>
-                  <small>Visitante</small>
-                </div>
-              </div>
-
-              <input
-                type="number"
-                min="0"
-                value={form.goles_visitante_predicho}
-                disabled={!prediccionAbierta}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    goles_visitante_predicho: e.target.value
-                  })
-                }
-                aria-label={`Goles de ${partidoSeleccionado.equipo_visitante || "visitante"}`}
-              />
-            </div>
-          </div>
-
-          <div className="scorers-section">
-            <div className="section-headline scorers-headline-row">
-              <div>
-                <h4>¿Por quién apostar?</h4>
-                <p>
-                  Puedes elegir hasta 3 jugadores. Cada acierto suma 1 punto y cada fallo resta 1.
-                </p>
-              </div>
-
-              <strong className="scorers-counter">
-                {form.goleadores.length}/{MAX_GOLEADORES}
-              </strong>
-            </div>
-
-            {jugadoresPartido.length === 0 ? (
-              <div className="empty-player-state">
-                <Goal size={30} />
-                <p>No hay jugadores cargados para este partido.</p>
-              </div>
-            ) : (
-              <div className="single-players-carousel">
-                {jugadoresPartido.map((j) => {
-                  const active = form.goleadores.includes(Number(j.id_jugador));
-
-                  return (
-                    <PlayerBetCard
-                      key={j.id_jugador}
-                      jugador={j}
-                      active={active}
-                      disabled={!prediccionAbierta}
-                      teamName={getPlayerTeamName(j)}
-                      onClick={() => toggleScorer(j.id_jugador)}
-                    />
-                  );
-                })}
-              </div>
+      <div className={`prediction-container-flex ${mobile ? "mobile-v" : "desktop-v"}`}>
+        <section
+          className={`panel prediction-panel ${
+            mobile ? "mobile-inline-prediction" : "desktop-prediction-panel"
+          }`}
+        >
+          <div className="panel-title">
+            <h3>Mi predicción</h3>
+            {!prediccionAbierta && (
+              <span className="prediction-closed-badge">
+                <Lock size={14} /> Predicción cerrada
+              </span>
             )}
           </div>
 
-          <div className="prediction-actions">
-            <button className="btn primary" type="submit" disabled={!prediccionAbierta}>
-              {prediccionAbierta ? "Guardar predicción" : "Predicción cerrada"}
-            </button>
-          </div>
-        </form>
-      </section>
+          <form className="form prediction-form" onSubmit={submit}>
+            <div className="prediction-form-grid prediction-form-grid-single">
+              <div>
+                <label>Grupo de polla</label>
+                <select
+                  value={form.id_grupo}
+                  onChange={(e) => {
+                    const nuevoGrupo = e.target.value;
+                    const prediccionGuardada = form.id_partido
+                      ? getPrediccionPartido(form.id_partido, nuevoGrupo)
+                      : null;
+
+                    setForm({
+                      ...form,
+                      id_grupo: nuevoGrupo,
+                      goles_local_predicho:
+                        prediccionGuardada?.goles_local_predicho ?? 0,
+                      goles_visitante_predicho:
+                        prediccionGuardada?.goles_visitante_predicho ?? 0,
+                      goleadores: normalizarGoleadores(
+                        prediccionGuardada?.goleadores
+                      )
+                    });
+
+                    // Cargar apuestas de otros si está cerrado
+                    if (!partidoPermitePrediccion(partidoSeleccionado)) {
+                      cargarPrediccionesGrupo(form.id_partido, nuevoGrupo);
+                    }
+                  }}
+                >
+                  <option value="">Seleccione</option>
+                  {grupos.map((g) => (
+                    <option key={g.id_grupo} value={g.id_grupo}>
+                      {g.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="prediction-summary-card">
+                <span>Resultado calculado</span>
+                <strong>{resultadoCalculado.label}</strong>
+                <small>Se interpreta automáticamente según el marcador.</small>
+              </div>
+            </div>
+
+            <div className="prediction-score-grid pro-score-grid">
+              <div className="score-team-card">
+                <div className="score-team-head no-flag">
+                  <div>
+                    <strong>{partidoSeleccionado.equipo_local || "Local"}</strong>
+                    <small>Local</small>
+                  </div>
+                </div>
+
+                <input
+                  type="number"
+                  min="0"
+                  value={form.goles_local_predicho}
+                  disabled={!prediccionAbierta}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      goles_local_predicho: e.target.value
+                    })
+                  }
+                  aria-label={`Goles de ${partidoSeleccionado.equipo_local || "local"}`}
+                />
+              </div>
+
+              <div className="score-team-card">
+                <div className="score-team-head no-flag">
+                  <div>
+                    <strong>
+                      {partidoSeleccionado.equipo_visitante || "Visitante"}
+                    </strong>
+                    <small>Visitante</small>
+                  </div>
+                </div>
+
+                <input
+                  type="number"
+                  min="0"
+                  value={form.goles_visitante_predicho}
+                  disabled={!prediccionAbierta}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      goles_visitante_predicho: e.target.value
+                    })
+                  }
+                  aria-label={`Goles de ${partidoSeleccionado.equipo_visitante || "visitante"}`}
+                />
+              </div>
+            </div>
+
+            <div className="scorers-section">
+              <div className="section-headline scorers-headline-row">
+                <div>
+                  <h4>¿Por quién apostar?</h4>
+                  <p>
+                    Puedes elegir hasta 3 jugadores. Cada acierto suma 1 punto y cada fallo resta 1.
+                  </p>
+                </div>
+
+                <strong className="scorers-counter">
+                  {form.goleadores.length}/{MAX_GOLEADORES}
+                </strong>
+              </div>
+
+              {jugadoresPartido.length === 0 ? (
+                <div className="empty-player-state">
+                  <Goal size={30} />
+                  <p>No hay jugadores cargados para este partido.</p>
+                </div>
+              ) : (
+                <div className="single-players-carousel">
+                  {jugadoresPartido.map((j) => {
+                    const active = form.goleadores.includes(Number(j.id_jugador));
+
+                    return (
+                      <PlayerBetCard
+                        key={j.id_jugador}
+                        jugador={j}
+                        active={active}
+                        disabled={!prediccionAbierta}
+                        teamName={getPlayerTeamName(j)}
+                        onClick={() => toggleScorer(j.id_jugador)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="prediction-actions">
+              <button className="btn primary" type="submit" disabled={!prediccionAbierta}>
+                {prediccionAbierta ? "Guardar predicción" : "Predicción cerrada"}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {!prediccionAbierta && form.id_grupo && (
+          <section className="panel others-predictions-panel">
+            <div className="panel-title">
+              <h3>Apuestas del grupo</h3>
+            </div>
+            {loadingPredicciones ? (
+              <Loading />
+            ) : prediccionesGrupo.length === 0 ? (
+              <p className="empty-state">No hay más apuestas en este grupo.</p>
+            ) : (
+              <div className="others-predictions-list">
+                {prediccionesGrupo
+                  .filter((p) => Number(p.id_usuario) !== Number(user.id_usuario))
+                  .map((p) => (
+                    <div key={p.id_usuario} className="other-prediction-item">
+                      <div className="user-info">
+                        <strong>{p.nombres} {p.apellidos}</strong>
+                        <small>@{p.usuario}</small>
+                      </div>
+                      <div className="user-score">
+                        <span className="score-pill">
+                          {p.goles_local_predicho} - {p.goles_visitante_predicho}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </section>
+        )}
+      </div>
     );
   };
 

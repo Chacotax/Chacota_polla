@@ -49,6 +49,9 @@ export const api = {
 
   guardarPrediccion: (payload) => http.post("/api/predicciones", payload),
 
+  prediccionesPartido: (idPartido, idGrupo) =>
+      http.get(`/api/predicciones/partido?partido=${idPartido}&grupo=${idGrupo}`),
+
   misPredicciones: (idUsuario, idGrupo = null) => {
     const params = new URLSearchParams();
 

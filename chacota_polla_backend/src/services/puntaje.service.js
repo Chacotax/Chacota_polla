@@ -320,6 +320,70 @@ export async function listarMisPredicciones(db, id_usuario, id_grupo = null) {
   }));
 }
 
+export async function listarPrediccionesPartido(db, id_partido, id_grupo) {
+  if (!id_partido || !id_grupo) {
+    throw new Error("Debe enviar id_partido e id_grupo.");
+  }
+
+  const partido = await first(
+    db,
+    "SELECT fecha_hora, estado_partido FROM partidos WHERE id_partido = ?",
+    [id_partido]
+  );
+
+  if (!partido) {
+    throw new Error("Partido no encontrado.");
+  }
+
+  // Por seguridad y fair play, solo mostrar si el partido ya no permite predicciones
+  if (puedeGuardarPrediccion(partido)) {
+    // Si aún permite predicción, solo devolvemos que existen pero no el detalle
+    // O simplemente lanzamos error si se prefiere restringir totalmente.
+    // Vamos a permitir ver QUIÉNES apostaron pero no QUÉ apostaron, o simplemente restringir.
+    // Restringiremos por ahora para evitar filtraciones de estrategias.
+    throw new Error("Las predicciones de otros usuarios solo son visibles cuando el partido ha comenzado o está por iniciar.");
+  }
+
+  const rs = await db
+    .prepare(
+      `SELECT p.id_prediccion,
+              p.id_grupo,
+              p.id_usuario,
+              u.usuario,
+              u.nombres,
+              u.apellidos,
+              p.id_partido,
+              p.equipo_ganador_predicho,
+              p.goles_local_predicho,
+              p.goles_visitante_predicho,
+              GROUP_CONCAT(pg.id_jugador) AS goleadores
+       FROM predicciones p
+       INNER JOIN usuarios u
+               ON u.id_usuario = p.id_usuario
+       LEFT JOIN prediccion_goleadores pg
+              ON pg.id_prediccion = p.id_prediccion
+       WHERE p.id_partido = ?
+         AND p.id_grupo = ?
+         AND p.estado = 1
+       GROUP BY p.id_prediccion
+       ORDER BY u.apellidos ASC, u.nombres ASC`
+    )
+    .bind(id_partido, id_grupo)
+    .all();
+
+  return (rs.results || []).map((p) => ({
+    ...p,
+    goles_local_predicho: Number(p.goles_local_predicho ?? 0),
+    goles_visitante_predicho: Number(p.goles_visitante_predicho ?? 0),
+    equipo_ganador_predicho:
+      p.equipo_ganador_predicho === null ||
+      p.equipo_ganador_predicho === undefined
+        ? null
+        : Number(p.equipo_ganador_predicho),
+    goleadores: normalizarGoleadoresBD(p.goleadores)
+  }));
+}
+
 export async function registrarResultado(db, payload) {
   const {
     id_partido,
