@@ -351,11 +351,8 @@ export default function PartidosPage() {
     setMessage("");
     setError("");
 
-    // Si el partido está cerrado, cargamos apuestas de todos los grupos
-    const abierto = partidoPermitePrediccion(p);
-    if (!abierto) {
-      cargarPrediccionesGlobales(p.id_partido);
-    }
+    // Cargamos apuestas de todos los grupos siempre para permitir descarga
+    cargarPrediccionesGlobales(p.id_partido);
   };
 
   const cargarPrediccionesGrupo = async (idPartido, idGrupo) => {
@@ -501,13 +498,24 @@ export default function PartidosPage() {
     doc.text(`Fecha: ${dateStr}`, 14, 30);
     doc.text(`Reporte: Todas las apuestas del sistema`, 14, 37);
 
+    const abierto = partidoPermitePrediccion(partidoSeleccionado);
+    const mensajeEstado = abierto 
+      ? "Nota: Los resultados pueden tener cambios debido a que el partido aun no esta cerrado."
+      : "Nota: Resultados ya ingresados. El partido ya esta iniciado/cerrado, no deberian tener cambios.";
+    
+    doc.setFontSize(9);
+    doc.setTextColor(abierto ? 100 : 0); // Gris si está abierto, negro si está cerrado
+    doc.text(mensajeEstado, 14, 43);
+    doc.setTextColor(0); // Reset color
+    doc.setFontSize(11);
+
     const tableData = prediccionesGrupo.map(p => [
       `${p.nombres} ${p.apellidos}`,
       `${p.goles_local_predicho} - ${p.goles_visitante_predicho}`
     ]);
 
     autoTable(doc, {
-      startY: 45,
+      startY: 50,
       head: [["Nombre", "Predicción"]],
       body: tableData,
     });
@@ -524,7 +532,7 @@ export default function PartidosPage() {
     if (isMobileViewport && !mobile) return null;
     if (!isMobileViewport && mobile) return null;
 
-    const showOthers = !prediccionAbierta;
+    const showOthers = true; // Siempre mostramos el panel de apuestas generales para permitir descarga
 
     return (
       <div className={`prediction-container-flex ${mobile ? "mobile-v" : "desktop-v"}`}>
